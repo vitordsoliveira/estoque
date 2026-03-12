@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Estoque - Produtos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- MODAL CSS -->
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 600px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.half {
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Gerenciar Estoque</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Adicione e controle os produtos disponíveis.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-produto"><i class="fas fa-plus"></i> Novo Produto</button>
+        </div>
+
+        <section class="table-container">
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Produto (SKU)</th>
+                        <th>Quantidade</th>
+                        <th>Preço Unitário (R$)</th>
+                        <th>Localização</th>
+                        <th>Validade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produto in produtos %}
+                    <tr>
+                        <td>
+                            <strong>{{ produto.sku.codigo }}</strong><br>
+                            <small>{{ produto.sku.nome }}</small>
+                        </td>
+                        <td>{{ produto.quantidade }}</td>
+                        <td>{{ "%.2f"|format(produto.preco) }}</td>
+                        <td>
+                            {% if produto.corredor or produto.prateleira %}
+                                {{ produto.corredor }} / {{ produto.prateleira }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ produto.data_validade.strftime('%d/%m/%Y') if produto.data_validade else '-' }}</td>
+                        <td>
+                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px;">Nenhum produto em estoque.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- Modal para Adicionar Novo Produto -->
+    <div class="modal-overlay" id="modal-produto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Produto ao Estoque</h2>
+                <button class="btn-close" id="btn-close-produto"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('produtos.cadastrar_produto') }}" method="POST">
+
+                    <div class="form-group">
+                        <label for="sku_id">Produto (SKU)</label>
+                        <select id="sku_id" name="sku_id" style="width: 100%;" required>
+                            <option value=""></option>
+                            {% for sku in skus %}
+                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="quantidade">Quantidade</label>
+                            <input type="number" step="any" id="quantidade" name="quantidade" placeholder="Ex: 10" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="preco">Preço de Custo (R$)</label>
+                            <input type="number" step="0.01" id="preco" name="preco" placeholder="Ex: 125.50" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="corredor">Corredor</label>
+                            <input type="text" id="corredor" name="corredor" placeholder="Ex: A1">
+                        </div>
+                        <div class="form-group half">
+                            <label for="prateleira">Prateleira</label>
+                            <input type="text" id="prateleira" name="prateleira" placeholder="Ex: P3">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data_validade">Data de Validade</label>
+                        <input type="date" id="data_validade" name="data_validade">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-produto">Cancelar</button>
+                        <button type="submit" class="btn-primary">Adicionar ao Estoque</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+
+    <script>
+        // Lógica do Modal
+        const btnNovoProduto = document.getElementById('btn-novo-produto');
+        const modalProduto = document.getElementById('modal-produto');
+        const btnCloseProduto = document.getElementById('btn-close-produto');
+        const btnCancelarProduto = document.getElementById('btn-cancelar-produto');
+
+        btnNovoProduto.addEventListener('click', () => modalProduto.classList.add('active'));
+
+        const fecharModal = () => modalProduto.classList.remove('active');
+
+        btnCloseProduto.addEventListener('click', fecharModal);
+        btnCancelarProduto.addEventListener('click', fecharModal);
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modalProduto) fecharModal();
+        });
+
+        // Lógica do formulário com Select2
+        $(document).ready(function () {
+            $('#sku_id').select2({
+                dropdownParent: $('#modal-produto'),
+                placeholder: 'Busque por nome ou código do SKU'
+            });
+        });
+    </script>
+</body>
+
+</html>

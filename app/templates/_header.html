@@ -1,0 +1,24 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+
+<header class="top-navbar">
+    <div class="logo-container">
+        <i class="fas fa-layer-group"></i>
+        <h1>Estoque</h1>
+    </div>
+
+    <nav class="main-nav">
+        <ul>
+            <li><a href="/" class="active">Dashboard</a></li>
+            <li><a href="{{ url_for('produtos.gerenciar_produtos') }}">Produtos</a></li>
+            <li><a href="{{ url_for('sku.gerenciar_sku') }}">SKU</a></li>
+            <li><a href="{{ url_for('marca.gerenciar_marca') }}">Marcas</a></li>
+            <li><a href="{{ url_for('familia.gerenciar_familia') }}">Familias</a></li>
+            <li><a href="{{ url_for('tipo.gerenciar_tipo') }}">Tipos</a></li>
+        </ul>
+    </nav>
+
+    <div class="user-profile">
+        <span>Olá Usuário</span>
+        <i class="fas fa-user-circle"></i>
+    </div>
+</header>

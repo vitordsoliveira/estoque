@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Marcas - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <!-- MODAL CSS -->
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 400px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Marcas / Fabricantes</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Gerencie as marcas que serão vinculadas aos
+                    SKUs.</p>
+            </div>
+            <button class="btn-primary" id="btn-nova-marca"><i class="fas fa-plus"></i> Nova Marca</button>
+        </div>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar marca por nome...">
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Nome da Marca</th>
+                        <th style="text-align: center;">Total de SKUs Vinculados</th>
+                        <th style="width: 150px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for marca in marcas %}
+                    <tr>
+                        <td><strong>{{ marca.nome }}</strong></td>
+                        <td style="text-align: center;">
+                            <span class="badge" style="background: #f1f5f9; color: #475569;">
+                                {{ marca.skus|length }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-marca">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Marca</h2>
+                <button class="btn-close" id="btn-close-marca"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('marca.cadastrar_marca') }}" method="POST">
+                    <div class="form-group">
+                        <label for="nome">Nome da Marca / Fabricante</label>
+                        <input type="text" id="nome" name="nome" placeholder="Ex: Dell, HP, Samsung..." required>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-marca">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Marca</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+
+    <script>
+        const btnNovaMarca = document.getElementById('btn-nova-marca');
+        const modalMarca = document.getElementById('modal-marca');
+        const btnCloseMarca = document.getElementById('btn-close-marca');
+        const btnCancelarMarca = document.getElementById('btn-cancelar-marca');
+
+        btnNovaMarca.addEventListener('click', () => modalMarca.classList.add('active'));
+
+        const fecharModal = () => modalMarca.classList.remove('active');
+
+        btnCloseMarca.addEventListener('click', fecharModal);
+        btnCancelarMarca.addEventListener('click', fecharModal);
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modalMarca) fecharModal();
+        });
+    </script>
+</body>
+
+</html>

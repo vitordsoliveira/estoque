@@ -1,0 +1,7 @@
+flask
+sqlalchemy
+flask_sqlalchemy
+pandas
+pymysql
+dotenv
+Flask-Migrate

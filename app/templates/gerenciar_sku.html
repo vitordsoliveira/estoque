@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar SKUs - Catálogo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- MODAL CSS -->
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 600px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.half {
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Catálogo de SKUs</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Defina os modelos base para o estoque e
+                    patrimônio.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-sku"><i class="fas fa-plus"></i> Novo SKU</button>
+        </div>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por código ou nome do modelo...">
+            </div>
+            <div class="filters">
+                <select name="filtro_marca">
+                    <option value="">Todas as Marcas</option>
+                    {% for marca in marcas %}
+                    <option value="{{ marca.id }}">{{ marca.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Cód. SKU</th>
+                        <th>Nome / Modelo</th>
+                        <th>Marca</th>
+                        <th>Família/Tipo</th>
+                        <th>Peso Base</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sku in skus %}
+                    <tr>
+                        <td><strong>{{ sku.codigo }}</strong></td>
+                        <td>{{ sku.nome }}</td>
+                        <td>{{ sku.marca.nome if sku.marca else '-' }}</td>
+                        <td>
+                            <small>{{ sku.familia.nome if sku.familia else '-' }}</small> /
+                            <small>{{ sku.tipo.nome if sku.tipo else '-' }}</small>
+                        </td>
+                        <td>{{ sku.peso if sku.peso else '0' }} kg</td>
+                        <td>
+                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-sku">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Novo SKU</h2>
+                <button class="btn-close" id="btn-close-sku"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('sku.cadastrar_sku') }}" method="POST">
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="codigo">Código do SKU (Único)</label>
+                            <input type="text" id="codigo" name="codigo" placeholder="Código único do item">
+                        </div>
+                        <div class="form-group half">
+                            <label for="marca_id">Marca</label>
+                            <select id="marca_id" name="marca_id" style="width: 100%;">
+                                <option value=""></option>
+                                {% for marca in marcas %}
+                                <option value="{{ marca.id }}">{{ marca.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nome">Nome Completo do Produto/Modelo</label>
+                        <input type="text" id="nome" name="nome"
+                            placeholder="Ex: Monitor Dell 24 Polegadas P2422H" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="tipo_id">Tipo</label>
+                            {# Presume que a variável 'tipos' (todos os tipos) é passada para o template #}
+                            <select id="tipo_id" name="tipo_id" style="width: 100%;" required>
+                                <option value=""></option>
+                                {% for tipo in tipos %}
+                                <option value="{{ tipo.id }}" data-familia-id="{{ tipo.familia.id }}"
+                                    data-familia-name="{{ tipo.familia.nome }}">{{ tipo.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="familia_nome">Família</label>
+                            <input type="text" id="familia_nome" name="familia_nome"
+                                placeholder="Preenchido automaticamente" readonly>
+                            <input type="hidden" id="familia_id" name="familia_id">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="peso">Peso (Kg/g)</label>
+                            <input type="number" step="0.001" id="peso" name="peso" placeholder="Ex: 1.250">
+                        </div>
+                        <div class="form-group half">
+                            <label for="valorPeso">Valor do Peso (R$)</label>
+                            <input type="number" step="0.01" id="valorPeso" name="valorPeso" placeholder="Ex: 45.50">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="especificacao_nome">Especificação Técnica</label>
+                        <input type="text" id="especificacao_nome" name="especificacao_nome"
+                            placeholder="Digite a especificação (ex: 16GB RAM, 512GB SSD)">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-sku">Cancelar</button>
+                        <button type="submit" class="btn-primary">Criar SKU</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+
+    <script>
+        const btnNovoSku = document.getElementById('btn-novo-sku');
+        const modalSku = document.getElementById('modal-sku');
+        const btnCloseSku = document.getElementById('btn-close-sku');
+        const btnCancelarSku = document.getElementById('btn-cancelar-sku');
+
+        btnNovoSku.addEventListener('click', () => modalSku.classList.add('active'));
+
+        const fecharModal = () => modalSku.classList.remove('active');
+
+        btnCloseSku.addEventListener('click', fecharModal);
+        btnCancelarSku.addEventListener('click', fecharModal);
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modalSku) fecharModal();
+        });
+
+        $(document).ready(function () {
+            $('#marca_id').select2({
+                dropdownParent: $('#modal-sku'),
+                placeholder: 'Selecione uma marca'
+            });
+
+            const tipoSelect = $('#tipo_id');
+            tipoSelect.select2({
+                dropdownParent: $('#modal-sku'),
+                placeholder: 'Selecione um tipo'
+            });
+
+            const familiaNomeInput = $('#familia_nome');
+            const familiaIdInput = $('#familia_id');
+
+            tipoSelect.on('change', function () {
+                const selectedOption = $(this).find('option:selected');
+                const familiaId = selectedOption.data('familia-id');
+                const familiaName = selectedOption.data('familia-name');
+
+                familiaNomeInput.val(familiaName || '');
+                familiaIdInput.val(familiaId || '');
+            });
+        });
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+/* =========================================
+   FOOTER
+   ========================================= */
+.main-footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 40px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Responsividade do Header */
+@media (max-width: 768px) {
+    .top-navbar {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 20px;
+    }
+    .main-nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+}

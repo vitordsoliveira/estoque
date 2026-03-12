@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque Geral - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- MODAL CSS -->
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 500px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            color: var(--text-main);
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .btn-close:hover {
+            color: var(--danger-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.half {
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary-color);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+    </style>
+
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <h2>Visão Geral do Estoque</h2>
+            <button class="btn-primary" id="btn-novo"><i class="fas fa-plus"></i> Novo Produto</button>
+        </div>
+
+        <section class="kpi-section">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Total de Itens</h3>
+                    <p>12.450</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-box"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Baixo Estoque</h3>
+                    <p class="text-danger">43</p>
+                </div>
+                <div class="kpi-icon danger-bg"><i class="fas fa-exclamation-triangle"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Categorias</h3>
+                    <p>8</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-tags"></i></div>
+            </div>
+        </section>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por código, nome ou marca...">
+            </div>
+            <div class="filters">
+                <select name="categoria" id="categoria">
+                    <option value="todos">Todas as Categorias</option>
+                    <option value="eletronicos">Eletrônicos</option>
+                    <option value="papelaria">Papelaria & Escolar</option>
+                    <option value="consumiveis">Consumíveis (Cartuchos/Toners)</option>
+                    <option value="moveis">Móveis de Escritório</option>
+                </select>
+                <select name="status" id="status">
+                    <option value="todos">Status: Todos</option>
+                    <option value="ok">Estoque Normal</option>
+                    <option value="baixo">Estoque Baixo</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Cód.</th>
+                        <th>Produto</th>
+                        <th>Categoria</th>
+                        <th>Qtd.</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#EL992</td>
+                        <td>Monitor Dell 24" Full HD</td>
+                        <td><span class="badge cat-eletronico">Eletrônicos</span></td>
+                        <td>45</td>
+                        <td><span class="status status-ok">Normal</span></td>
+                        <td>
+                            <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon text-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#PA105</td>
+                        <td>Caderno Universitário 10 Matérias</td>
+                        <td><span class="badge cat-papelaria">Papelaria</span></td>
+                        <td>120</td>
+                        <td><span class="status status-ok">Normal</span></td>
+                        <td>
+                            <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon text-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#CO022</td>
+                        <td>Cartucho de Tinta HP 664 Preto</td>
+                        <td><span class="badge cat-consumivel">Consumíveis</span></td>
+                        <td>3</td>
+                        <td><span class="status status-danger">Baixo</span></td>
+                        <td>
+                            <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon text-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- MODAL HTML -->
+    <div class="modal-overlay" id="modal-produto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dar Entrada em Estoque (Produto)</h2>
+                <button class="btn-close" id="btn-close"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="/salvar_produto" method="POST" class="form-produto">
+
+                    <div class="form-group">
+                        <label for="sku_id">SKU / Catálogo Base</label>
+                        <select id="sku_id" name="sku_id" style="width: 100%;" required>
+                            <option value="" disabled selected>Selecione o produto no catálogo...</option>
+                            {% for sku in skus %}
+                            <option value="{{ sku.id }}">{{ sku.codigo }} - {{ sku.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <script>
+                            $(document).ready(function() {
+                                $('#sku_id').select2({
+                                    dropdownParent: $('#modal-produto')
+                                });
+                            });
+                        </script>
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">Marca, Categoria e Regras de Peso
+                            são puxadas automaticamente do SKU.</small>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 20px 0;">
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="quantidade">Quantidade em Estoque</label>
+                            <input type="number" step="0.01" id="quantidade" name="quantidade" placeholder="Ex: 50"
+                                required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="data_validade">Data de Validade (Opcional)</label>
+                            <input type="date" id="data_validade" name="data_validade">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="preco">Preço de Venda Atual (R$)</label>
+                            <input type="number" step="0.01" id="preco" name="preco" placeholder="Ex: 29.90" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="preco_promocional">Preço Promocional (Opcional)</label>
+                            <input type="number" step="0.01" id="preco_promocional" name="preco_promocional"
+                                placeholder="Ex: 25.00">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="corredor">Corredor / Setor (Opcional)</label>
+                            <input type="text" id="corredor" name="corredor" placeholder="Ex: Corredor A, Frios...">
+                        </div>
+                        <div class="form-group half">
+                            <label for="prateleira">Prateleira / Nível (Opcional)</label>
+                            <input type="text" id="prateleira" name="prateleira"
+                                placeholder="Ex: Nível 2, Prateleira 4...">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% include '_footer.html' %}
+
+    <script>
+        const btnNovo = document.getElementById('btn-novo');
+        const btnClose = document.getElementById('btn-close');
+        const btnCancelar = document.getElementById('btn-cancelar');
+        const modal = document.getElementById('modal-produto');
+
+        btnNovo.addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+
+        const fecharModal = () => {
+            modal.classList.remove('active');
+        };
+
+        btnClose.addEventListener('click', fecharModal);
+        btnCancelar.addEventListener('click', fecharModal);
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                fecharModal();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
