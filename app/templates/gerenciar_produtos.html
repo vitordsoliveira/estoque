@@ -12,7 +12,6 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <!-- MODAL CSS -->
     <style>
         .modal-overlay {
             position: fixed;
@@ -159,7 +158,6 @@
         </section>
     </main>
 
-    <!-- Modal para Adicionar Novo Produto -->
     <div class="modal-overlay" id="modal-produto">
         <div class="modal-content">
             <div class="modal-header">
@@ -169,13 +167,16 @@
 
             <div class="modal-body">
                 <form action="{{ url_for('produtos.cadastrar_produto') }}" method="POST">
-
                     <div class="form-group">
                         <label for="sku_id">Produto (SKU)</label>
                         <select id="sku_id" name="sku_id" style="width: 100%;" required>
                             <option value=""></option>
                             {% for sku in skus %}
-                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            <option
+                                value="{{ sku.id }}"
+                                data-tem-preco-peso="{{ 'true' if sku.peso and sku.peso > 0 and sku.valorPeso and sku.valorPeso > 0 else 'false' }}"
+                                data-valor-peso="{{ '%.2f'|format(sku.valorPeso) if sku.valorPeso else '' }}"
+                            >{{ sku.nome }} ({{ sku.codigo }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -188,6 +189,7 @@
                         <div class="form-group half">
                             <label for="preco">Preço de Custo (R$)</label>
                             <input type="number" step="0.01" id="preco" name="preco" placeholder="Ex: 125.50" required>
+                            <small id="preco-help" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 5px;"></small>
                         </div>
                     </div>
 
@@ -219,7 +221,6 @@
     {% include '_footer.html' %}
 
     <script>
-        // Lógica do Modal
         const btnNovoProduto = document.getElementById('btn-novo-produto');
         const modalProduto = document.getElementById('modal-produto');
         const btnCloseProduto = document.getElementById('btn-close-produto');
@@ -236,12 +237,39 @@
             if (e.target === modalProduto) fecharModal();
         });
 
-        // Lógica do formulário com Select2
         $(document).ready(function () {
-            $('#sku_id').select2({
+            const $sku = $('#sku_id');
+            const precoInput = document.getElementById('preco');
+            const precoHelp = document.getElementById('preco-help');
+
+            function atualizarCampoPreco() {
+                const selectedOption = $sku.find(':selected');
+                const temPrecoPeso = selectedOption.data('tem-preco-peso') === true || selectedOption.data('tem-preco-peso') === 'true';
+                const valorPeso = selectedOption.data('valor-peso');
+
+                if (temPrecoPeso) {
+                    precoInput.value = valorPeso || '';
+                    precoInput.readOnly = true;
+                    precoInput.required = false;
+                    precoInput.style.backgroundColor = '#f3f4f6';
+                    precoHelp.textContent = 'Este SKU usa preço por peso. O valor unitário foi travado com base no SKU.';
+                    return;
+                }
+
+                precoInput.readOnly = false;
+                precoInput.required = true;
+                precoInput.style.backgroundColor = '';
+                precoInput.value = '';
+                precoHelp.textContent = 'Digite o preço unitário para este produto.';
+            }
+
+            $sku.select2({
                 dropdownParent: $('#modal-produto'),
                 placeholder: 'Busque por nome ou código do SKU'
             });
+
+            $sku.on('change', atualizarCampoPreco);
+            atualizarCampoPreco();
         });
     </script>
 </body>
