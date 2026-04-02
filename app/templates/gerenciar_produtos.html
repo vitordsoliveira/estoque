@@ -145,8 +145,10 @@
                         </td>
                         <td>{{ produto.data_validade.strftime('%d/%m/%Y') if produto.data_validade else '-' }}</td>
                         <td>
-                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon" title="Editar" data-id="{{ produto.id }}" onclick="abrirEditarProduto(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('produtos.deletar_produto', id=produto.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este produto?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% else %}
@@ -216,6 +218,63 @@
         </div>
     </div>
 
+    <!-- Modal para Editar Produto -->
+    <div class="modal-overlay" id="modal-editar-produto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Produto</h2>
+                <button class="btn-close" id="btn-close-editar-produto"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-produto" method="POST">
+
+                    <div class="form-group">
+                        <label for="sku_id_editar">Produto (SKU)</label>
+                        <select id="sku_id_editar" name="sku_id" style="width: 100%;" required>
+                            <option value=""></option>
+                            {% for sku in skus %}
+                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="quantidade_editar">Quantidade</label>
+                            <input type="number" step="any" id="quantidade_editar" name="quantidade" placeholder="Ex: 10" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="preco_editar">Preço de Custo (R$)</label>
+                            <input type="number" step="0.01" id="preco_editar" name="preco" placeholder="Ex: 125.50" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="corredor_editar">Corredor</label>
+                            <input type="text" id="corredor_editar" name="corredor" placeholder="Ex: A1">
+                        </div>
+                        <div class="form-group half">
+                            <label for="prateleira_editar">Prateleira</label>
+                            <input type="text" id="prateleira_editar" name="prateleira" placeholder="Ex: P3">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data_validade_editar">Data de Validade</label>
+                        <input type="date" id="data_validade_editar" name="data_validade">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-produto">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
 
     <script>
@@ -225,21 +284,57 @@
         const btnCloseProduto = document.getElementById('btn-close-produto');
         const btnCancelarProduto = document.getElementById('btn-cancelar-produto');
 
+        const modalEditarProduto = document.getElementById('modal-editar-produto');
+        const btnCloseEditarProduto = document.getElementById('btn-close-editar-produto');
+        const btnCancelarEditarProduto = document.getElementById('btn-cancelar-editar-produto');
+        const formEditarProduto = document.getElementById('form-editar-produto');
+
         btnNovoProduto.addEventListener('click', () => modalProduto.classList.add('active'));
 
-        const fecharModal = () => modalProduto.classList.remove('active');
+        const fecharModal = (modal) => modal.classList.remove('active');
 
-        btnCloseProduto.addEventListener('click', fecharModal);
-        btnCancelarProduto.addEventListener('click', fecharModal);
+        btnCloseProduto.addEventListener('click', () => fecharModal(modalProduto));
+        btnCancelarProduto.addEventListener('click', () => fecharModal(modalProduto));
+
+        btnCloseEditarProduto.addEventListener('click', () => fecharModal(modalEditarProduto));
+        btnCancelarEditarProduto.addEventListener('click', () => fecharModal(modalEditarProduto));
 
         window.addEventListener('click', (e) => {
-            if (e.target === modalProduto) fecharModal();
+            if (e.target === modalProduto) fecharModal(modalProduto);
+            if (e.target === modalEditarProduto) fecharModal(modalEditarProduto);
         });
+
+        function abrirEditarProduto(button) {
+            const id = button.getAttribute('data-id');
+            
+            // Fetch de dados da API
+            fetch(`/produtos/get/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('sku_id_editar').value = data.sku_id;
+                    document.getElementById('quantidade_editar').value = data.quantidade;
+                    document.getElementById('preco_editar').value = data.preco;
+                    document.getElementById('corredor_editar').value = data.corredor || '';
+                    document.getElementById('prateleira_editar').value = data.prateleira || '';
+                    document.getElementById('data_validade_editar').value = data.data_validade || '';
+                    
+                    $('#sku_id_editar').val(data.sku_id).trigger('change');
+                    formEditarProduto.action = `/produtos/editar/${id}`;
+                    fecharModal(modalProduto);
+                    modalEditarProduto.classList.add('active');
+                })
+                .catch(err => console.error('Erro ao buscar dados:', err));
+        }
 
         // Lógica do formulário com Select2
         $(document).ready(function () {
             $('#sku_id').select2({
                 dropdownParent: $('#modal-produto'),
+                placeholder: 'Busque por nome ou código do SKU'
+            });
+
+            $('#sku_id_editar').select2({
+                dropdownParent: $('#modal-editar-produto'),
                 placeholder: 'Busque por nome ou código do SKU'
             });
         });

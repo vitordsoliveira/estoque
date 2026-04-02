@@ -69,6 +69,7 @@ class Sku(db.Model):
     tipo = relationship("Tipo", back_populates="skus")
 
     especificacao_id = Column(Integer, ForeignKey('especificacao.id'), nullable=True)
+    especificacao = relationship("Especificacao")
     
     marca_id = Column(Integer, ForeignKey('marca.id'), nullable=True)
     marca = relationship("Marca", back_populates="skus")

@@ -157,8 +157,10 @@
                         </td>
                         <td>{{ sku.peso if sku.peso else '0' }} kg</td>
                         <td>
-                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon" title="Editar" data-id="{{ sku.id }}" onclick="abrirEditarSku(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('sku.deletar_sku', id=sku.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este SKU?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -245,6 +247,83 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-editar-sku">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar SKU</h2>
+                <button class="btn-close" id="btn-close-editar-sku"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-sku" method="POST">
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="codigo_editar">Código do SKU (Único)</label>
+                            <input type="text" id="codigo_editar" name="codigo" placeholder="Código único do item">
+                        </div>
+                        <div class="form-group half">
+                            <label for="marca_id_editar">Marca</label>
+                            <select id="marca_id_editar" name="marca_id" style="width: 100%;">
+                                <option value=""></option>
+                                {% for marca in marcas %}
+                                <option value="{{ marca.id }}">{{ marca.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nome_editar">Nome Completo do Produto/Modelo</label>
+                        <input type="text" id="nome_editar" name="nome"
+                            placeholder="Ex: Monitor Dell 24 Polegadas P2422H" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="tipo_id_editar">Tipo</label>
+                            <select id="tipo_id_editar" name="tipo_id" style="width: 100%;" required>
+                                <option value=""></option>
+                                {% for tipo in tipos %}
+                                <option value="{{ tipo.id }}" data-familia-id="{{ tipo.familia.id }}"
+                                    data-familia-name="{{ tipo.familia.nome }}">{{ tipo.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="familia_nome_editar">Família</label>
+                            <input type="text" id="familia_nome_editar" name="familia_nome"
+                                placeholder="Preenchido automaticamente" readonly>
+                            <input type="hidden" id="familia_id_editar" name="familia_id">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="peso_editar">Peso (Kg/g)</label>
+                            <input type="number" step="0.001" id="peso_editar" name="peso" placeholder="Ex: 1.250">
+                        </div>
+                        <div class="form-group half">
+                            <label for="valorPeso_editar">Valor do Peso (R$)</label>
+                            <input type="number" step="0.01" id="valorPeso_editar" name="valorPeso" placeholder="Ex: 45.50">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="especificacao_nome_editar">Especificação Técnica</label>
+                        <input type="text" id="especificacao_nome_editar" name="especificacao_nome"
+                            placeholder="Digite a especificação (ex: 16GB RAM, 512GB SSD)">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-sku">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar SKU</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
 
     <script>
@@ -253,16 +332,52 @@
         const btnCloseSku = document.getElementById('btn-close-sku');
         const btnCancelarSku = document.getElementById('btn-cancelar-sku');
 
+        const modalEditarSku = document.getElementById('modal-editar-sku');
+        const btnCloseEditarSku = document.getElementById('btn-close-editar-sku');
+        const btnCancelarEditarSku = document.getElementById('btn-cancelar-editar-sku');
+        const formEditarSku = document.getElementById('form-editar-sku');
+
         btnNovoSku.addEventListener('click', () => modalSku.classList.add('active'));
 
-        const fecharModal = () => modalSku.classList.remove('active');
+        const fecharModal = (modal) => modal.classList.remove('active');
 
-        btnCloseSku.addEventListener('click', fecharModal);
-        btnCancelarSku.addEventListener('click', fecharModal);
+        btnCloseSku.addEventListener('click', () => fecharModal(modalSku));
+        btnCancelarSku.addEventListener('click', () => fecharModal(modalSku));
+        
+        btnCloseEditarSku.addEventListener('click', () => fecharModal(modalEditarSku));
+        btnCancelarEditarSku.addEventListener('click', () => fecharModal(modalEditarSku));
 
         window.addEventListener('click', (e) => {
-            if (e.target === modalSku) fecharModal();
+            if (e.target === modalSku) fecharModal(modalSku);
+            if (e.target === modalEditarSku) fecharModal(modalEditarSku);
         });
+
+        function abrirEditarSku(button) {
+            const id = button.getAttribute('data-id');
+            
+            fetch(`/sku/get/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('codigo_editar').value = data.codigo;
+                    document.getElementById('nome_editar').value = data.nome;
+                    document.getElementById('peso_editar').value = data.peso || '';
+                    document.getElementById('valorPeso_editar').value = data.valorPeso || '';
+                    document.getElementById('especificacao_nome_editar').value = data.especificacao_nome || '';
+
+                    $('#marca_id_editar').val(data.marca_id ? String(data.marca_id) : '').trigger('change');
+                    $('#tipo_id_editar').val(data.tipo_id ? String(data.tipo_id) : '').trigger('change');
+
+                    if (!data.tipo_id) {
+                        document.getElementById('familia_nome_editar').value = data.familia_nome || '';
+                        document.getElementById('familia_id_editar').value = data.familia_id || '';
+                    }
+                    
+                    formEditarSku.action = `/sku/editar_sku/${id}`;
+                    fecharModal(modalSku);
+                    modalEditarSku.classList.add('active');
+                })
+                .catch(err => console.error('Erro ao buscar dados:', err));
+        }
 
         $(document).ready(function () {
             $('#marca_id').select2({
@@ -286,6 +401,30 @@
 
                 familiaNomeInput.val(familiaName || '');
                 familiaIdInput.val(familiaId || '');
+            });
+
+            // Para edição
+            $('#marca_id_editar').select2({
+                dropdownParent: $('#modal-editar-sku'),
+                placeholder: 'Selecione uma marca'
+            });
+
+            const tipoSelectEditar = $('#tipo_id_editar');
+            tipoSelectEditar.select2({
+                dropdownParent: $('#modal-editar-sku'),
+                placeholder: 'Selecione um tipo'
+            });
+
+            const familiaNomeInputEditar = $('#familia_nome_editar');
+            const familiaIdInputEditar = $('#familia_id_editar');
+
+            tipoSelectEditar.on('change', function () {
+                const selectedOption = $(this).find('option:selected');
+                const familiaId = selectedOption.data('familia-id');
+                const familiaName = selectedOption.data('familia-name');
+
+                familiaNomeInputEditar.val(familiaName || '');
+                familiaIdInputEditar.val(familiaId || '');
             });
         });
 

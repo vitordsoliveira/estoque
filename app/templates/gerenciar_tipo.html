@@ -125,8 +125,10 @@
                         <td><strong>{{ tipo.nome }}</strong></td>
                         <td>{{ tipo.familia.nome }}</td>
                         <td>
-                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon" title="Editar" data-id="{{ tipo.id }}" data-nome="{{ tipo.nome }}" data-familia="{{ tipo.familia_id }}" onclick="abrirEditarTipo(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('tipo.deletar_tipo', id=tipo.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este tipo?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -169,6 +171,40 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-editar-tipo">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Tipo</h2>
+                <button class="btn-close" id="btn-close-editar-tipo"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-tipo" method="POST">
+                    <div class="form-group">
+                        <label for="nome_tipo_editar">Nome do Tipo</label>
+                        <input type="text" id="nome_tipo_editar" name="nome" placeholder="Ex: Camiseta, Monitor, Parafuso..."
+                            required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="familia_id_editar">Vincular à Família</label>
+                        <select id="familia_id_editar" name="familia_id" required>
+                            <option value="">Selecione uma família...</option>
+                            {% for familia in familias %}
+                            <option value="{{ familia.id }}">{{ familia.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-tipo">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Tipo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
 
     <script>
@@ -177,16 +213,37 @@
         const btnCloseTipo = document.getElementById('btn-close-tipo');
         const btnCancelarTipo = document.getElementById('btn-cancelar-tipo');
 
-        const abrirModal = () => modalTipo.classList.add('active');
-        const fecharModal = () => modalTipo.classList.remove('active');
+        const modalEditarTipo = document.getElementById('modal-editar-tipo');
+        const btnCloseEditarTipo = document.getElementById('btn-close-editar-tipo');
+        const btnCancelarEditarTipo = document.getElementById('btn-cancelar-editar-tipo');
+        const formEditarTipo = document.getElementById('form-editar-tipo');
 
-        btnNovoTipo.addEventListener('click', abrirModal);
-        btnCloseTipo.addEventListener('click', fecharModal);
-        btnCancelarTipo.addEventListener('click', fecharModal);
+        const abrirModal = (modal) => modal.classList.add('active');
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        btnNovoTipo.addEventListener('click', () => abrirModal(modalTipo));
+        btnCloseTipo.addEventListener('click', () => fecharModal(modalTipo));
+        btnCancelarTipo.addEventListener('click', () => fecharModal(modalTipo));
+
+        btnCloseEditarTipo.addEventListener('click', () => fecharModal(modalEditarTipo));
+        btnCancelarEditarTipo.addEventListener('click', () => fecharModal(modalEditarTipo));
 
         window.addEventListener('click', (e) => {
-            if (e.target === modalTipo) fecharModal();
+            if (e.target === modalTipo) fecharModal(modalTipo);
+            if (e.target === modalEditarTipo) fecharModal(modalEditarTipo);
         });
+
+        function abrirEditarTipo(button) {
+            const id = button.getAttribute('data-id');
+            const nome = button.getAttribute('data-nome');
+            const familia = button.getAttribute('data-familia');
+            
+            document.getElementById('nome_tipo_editar').value = nome;
+            document.getElementById('familia_id_editar').value = familia;
+            formEditarTipo.action = `/tipo/editar_tipo/${id}`;
+            
+            abrirModal(modalEditarTipo);
+        }
     </script>
 </body>
 

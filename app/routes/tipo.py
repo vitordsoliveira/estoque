@@ -45,3 +45,56 @@ def cadastrar_tipo():
         flash(f'Erro ao cadastrar tipo: {str(e)}', 'danger')
 
     return redirect(url_for('tipo.gerenciar_tipo'))
+
+@tipo.route('/editar_tipo/<int:id>', methods=['GET', 'POST'])
+def editar_tipo(id):
+    tipo_obj = Tipo.query.get(id)
+    
+    if not tipo_obj:
+        flash('Tipo não encontrado!', 'danger')
+        return redirect(url_for('tipo.gerenciar_tipo'))
+    
+    if request.method == 'POST':
+        nome_tipo = request.form.get('nome').strip()
+        familia_id = request.form.get('familia_id')
+        
+        if not nome_tipo or not familia_id:
+            flash('O nome do tipo e a família são obrigatórios!', 'warning')
+            return redirect(url_for('tipo.gerenciar_tipo'))
+        
+        try:
+            tipo_existente = Tipo.query.filter_by(nome=nome_tipo, familia_id=familia_id).filter(Tipo.id != id).first()
+            if tipo_existente:
+                flash(f'Já existe um tipo com o nome "{nome_tipo}" nesta família.', 'danger')
+                return redirect(url_for('tipo.gerenciar_tipo'))
+            
+            tipo_obj.nome = nome_tipo
+            tipo_obj.familia_id = int(familia_id)
+            db.session.commit()
+            flash('Tipo atualizado com sucesso!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar tipo: {str(e)}', 'danger')
+        
+        return redirect(url_for('tipo.gerenciar_tipo'))
+    
+    return redirect(url_for('tipo.gerenciar_tipo'))
+
+@tipo.route('/deletar_tipo/<int:id>', methods=['POST'])
+def deletar_tipo(id):
+    tipo_obj = Tipo.query.get(id)
+    
+    if not tipo_obj:
+        flash('Tipo não encontrada!', 'danger')
+        return redirect(url_for('tipo.gerenciar_tipo'))
+    
+    try:
+        db.session.delete(tipo_obj)
+        db.session.commit()
+        flash('Tipo deletado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao deletar tipo: {str(e)}', 'danger')
+    
+    return redirect(url_for('tipo.gerenciar_tipo'))

@@ -128,8 +128,10 @@
                             </span>
                         </td>
                         <td>
-                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon" title="Editar" data-id="{{ familia.id }}" data-nome="{{ familia.nome }}" onclick="abrirEditarFamilia(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('familia.deletar_familia', id=familia.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar esta família?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -161,6 +163,29 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-editar-familia">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Família</h2>
+                <button class="btn-close" id="btn-close-editar-familia"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-familia" method="POST">
+                    <div class="form-group">
+                        <label for="nome-editar">Nome da Família</label>
+                        <input type="text" id="nome-editar" name="nome" placeholder="Ex: Eletrônicos, Vestuário..." required>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-familia">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Família</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
 
     <script>
@@ -169,16 +194,35 @@
         const btnCloseFamilia = document.getElementById('btn-close-familia');
         const btnCancelarFamilia = document.getElementById('btn-cancelar-familia');
 
+        const modalEditarFamilia = document.getElementById('modal-editar-familia');
+        const btnCloseEditarFamilia = document.getElementById('btn-close-editar-familia');
+        const btnCancelarEditarFamilia = document.getElementById('btn-cancelar-editar-familia');
+        const formEditarFamilia = document.getElementById('form-editar-familia');
+
         btnNovaFamilia.addEventListener('click', () => modalFamilia.classList.add('active'));
 
-        const fecharModal = () => modalFamilia.classList.remove('active');
+        const fecharModal = (modal) => modal.classList.remove('active');
 
-        btnCloseFamilia.addEventListener('click', fecharModal);
-        btnCancelarFamilia.addEventListener('click', fecharModal);
+        btnCloseFamilia.addEventListener('click', () => fecharModal(modalFamilia));
+        btnCancelarFamilia.addEventListener('click', () => fecharModal(modalFamilia));
+        
+        btnCloseEditarFamilia.addEventListener('click', () => fecharModal(modalEditarFamilia));
+        btnCancelarEditarFamilia.addEventListener('click', () => fecharModal(modalEditarFamilia));
 
         window.addEventListener('click', (e) => {
-            if (e.target === modalFamilia) fecharModal();
+            if (e.target === modalFamilia) fecharModal(modalFamilia);
+            if (e.target === modalEditarFamilia) fecharModal(modalEditarFamilia);
         });
+
+        function abrirEditarFamilia(button) {
+            const id = button.getAttribute('data-id');
+            const nome = button.getAttribute('data-nome');
+            
+            document.getElementById('nome-editar').value = nome;
+            formEditarFamilia.action = `/familia/editar_familia/${id}`;
+            
+            modalEditarFamilia.classList.add('active');
+        }
     </script>
 </body>
 

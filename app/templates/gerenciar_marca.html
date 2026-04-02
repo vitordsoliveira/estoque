@@ -128,8 +128,10 @@
                             </span>
                         </td>
                         <td>
-                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon" title="Editar" data-id="{{ marca.id }}" data-nome="{{ marca.nome }}" onclick="abrirEditarMarca(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('marca.deletar_marca', id=marca.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar esta marca?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -161,6 +163,29 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-editar-marca">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Marca</h2>
+                <button class="btn-close" id="btn-close-editar-marca"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-marca" method="POST">
+                    <div class="form-group">
+                        <label for="nome-editar">Nome da Marca / Fabricante</label>
+                        <input type="text" id="nome-editar" name="nome" placeholder="Ex: Dell, HP, Samsung..." required>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-marca">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Marca</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
 
     <script>
@@ -169,16 +194,35 @@
         const btnCloseMarca = document.getElementById('btn-close-marca');
         const btnCancelarMarca = document.getElementById('btn-cancelar-marca');
 
+        const modalEditarMarca = document.getElementById('modal-editar-marca');
+        const btnCloseEditarMarca = document.getElementById('btn-close-editar-marca');
+        const btnCancelarEditarMarca = document.getElementById('btn-cancelar-editar-marca');
+        const formEditarMarca = document.getElementById('form-editar-marca');
+
         btnNovaMarca.addEventListener('click', () => modalMarca.classList.add('active'));
 
-        const fecharModal = () => modalMarca.classList.remove('active');
+        const fecharModal = (modal) => modal.classList.remove('active');
 
-        btnCloseMarca.addEventListener('click', fecharModal);
-        btnCancelarMarca.addEventListener('click', fecharModal);
+        btnCloseMarca.addEventListener('click', () => fecharModal(modalMarca));
+        btnCancelarMarca.addEventListener('click', () => fecharModal(modalMarca));
+        
+        btnCloseEditarMarca.addEventListener('click', () => fecharModal(modalEditarMarca));
+        btnCancelarEditarMarca.addEventListener('click', () => fecharModal(modalEditarMarca));
 
         window.addEventListener('click', (e) => {
-            if (e.target === modalMarca) fecharModal();
+            if (e.target === modalMarca) fecharModal(modalMarca);
+            if (e.target === modalEditarMarca) fecharModal(modalEditarMarca);
         });
+
+        function abrirEditarMarca(button) {
+            const id = button.getAttribute('data-id');
+            const nome = button.getAttribute('data-nome');
+            
+            document.getElementById('nome-editar').value = nome;
+            formEditarMarca.action = `/marca/editar_marca/${id}`;
+            
+            modalEditarMarca.classList.add('active');
+        }
     </script>
 </body>
 
