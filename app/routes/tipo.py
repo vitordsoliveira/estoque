@@ -88,6 +88,10 @@ def deletar_tipo(id):
     if not tipo_obj:
         flash('Tipo não encontrada!', 'danger')
         return redirect(url_for('tipo.gerenciar_tipo'))
+
+    if tipo_obj.skus:
+        flash('Não é possível excluir o tipo enquanto houver SKUs vinculados a ele.', 'warning')
+        return redirect(url_for('tipo.gerenciar_tipo'))
     
     try:
         db.session.delete(tipo_obj)

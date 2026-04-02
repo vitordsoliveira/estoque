@@ -121,10 +121,10 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar por código ou nome do modelo...">
+                <input type="text" placeholder="Buscar por código, nome, marca, família ou tipo..." data-table-search data-table-target="#sku-table" data-filter-target="#filtro-marca" data-filter-key="filterBrand" data-empty-message="Nenhum SKU encontrado.">
             </div>
             <div class="filters">
-                <select name="filtro_marca">
+                <select name="filtro_marca" id="filtro-marca">
                     <option value="">Todas as Marcas</option>
                     {% for marca in marcas %}
                     <option value="{{ marca.id }}">{{ marca.nome }}</option>
@@ -134,7 +134,7 @@
         </section>
 
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="sku-table">
                 <thead>
                     <tr>
                         <th>Cód. SKU</th>
@@ -147,7 +147,7 @@
                 </thead>
                 <tbody>
                     {% for sku in skus %}
-                    <tr>
+                    <tr data-searchable-row data-search-text="{{ sku.codigo }} {{ sku.nome }} {{ sku.marca.nome if sku.marca else '' }} {{ sku.familia.nome if sku.familia else '' }} {{ sku.tipo.nome if sku.tipo else '' }}" data-filter-brand="{{ sku.marca_id if sku.marca_id else '' }}">
                         <td><strong>{{ sku.codigo }}</strong></td>
                         <td>{{ sku.nome }}</td>
                         <td>{{ sku.marca.nome if sku.marca else '-' }}</td>
@@ -155,7 +155,7 @@
                             <small>{{ sku.familia.nome if sku.familia else '-' }}</small> /
                             <small>{{ sku.tipo.nome if sku.tipo else '-' }}</small>
                         </td>
-                        <td>{{ sku.peso if sku.peso else '0' }} kg</td>
+                        <td>{{ '%.3f'|format(sku.peso) if sku.peso else '0.000' }} kg</td>
                         <td>
                             <button class="btn-icon" title="Editar" data-id="{{ sku.id }}" onclick="abrirEditarSku(this)"><i class="fas fa-edit"></i></button>
                             <form action="{{ url_for('sku.deletar_sku', id=sku.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este SKU?');">
@@ -224,7 +224,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="peso">Peso (Kg/g)</label>
-                            <input type="number" step="0.001" id="peso" name="peso" placeholder="Ex: 1.250">
+                            <input type="text" inputmode="decimal" id="peso" name="peso" placeholder="Ex: 100 para 100g ou 1,250">
                         </div>
                         <div class="form-group half">
                             <label for="valorPeso">Valor do Peso (R$)</label>
@@ -301,7 +301,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="peso_editar">Peso (Kg/g)</label>
-                            <input type="number" step="0.001" id="peso_editar" name="peso" placeholder="Ex: 1.250">
+                            <input type="text" inputmode="decimal" id="peso_editar" name="peso" placeholder="Ex: 100 para 100g ou 1,250">
                         </div>
                         <div class="form-group half">
                             <label for="valorPeso_editar">Valor do Peso (R$)</label>
@@ -325,6 +325,7 @@
     </div>
 
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
         const btnNovoSku = document.getElementById('btn-novo-sku');

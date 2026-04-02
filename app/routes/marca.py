@@ -78,6 +78,10 @@ def deletar_marca(id):
     if not marca:
         flash('Marca não encontrada!', 'danger')
         return redirect(url_for('marca.gerenciar_marca'))
+
+    if marca.skus:
+        flash('Não é possível excluir a marca enquanto houver SKUs vinculados a ela.', 'warning')
+        return redirect(url_for('marca.gerenciar_marca'))
     
     try:
         db.session.delete(marca)

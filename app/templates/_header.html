@@ -22,3 +22,27 @@
         <i class="fas fa-user-circle"></i>
     </div>
 </header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<section class="flash-container" aria-live="polite" aria-atomic="true">
+    {% for category, message in messages %}
+    <div class="flash-message flash-{{ category }}" data-flash>
+        <span>{{ message }}</span>
+        <button type="button" class="flash-close" aria-label="Fechar mensagem" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    {% endfor %}
+</section>
+
+<script>
+    window.setTimeout(() => {
+        document.querySelectorAll('[data-flash]').forEach((flashElement) => {
+            flashElement.classList.add('flash-hide');
+            window.setTimeout(() => flashElement.remove(), 250);
+        });
+    }, 2000);
+</script>
+{% endif %}
+{% endwith %}

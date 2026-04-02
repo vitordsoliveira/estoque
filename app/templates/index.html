@@ -150,29 +150,32 @@
 
     <main class="dashboard-container">
         <div class="page-header">
-            <h2>Visão Geral do Estoque</h2>
-            <button class="btn-primary" id="btn-novo"><i class="fas fa-plus"></i> Novo Produto</button>
+            <div>
+                <h2>Visão Geral do Estoque</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Acompanhe o estoque em tempo real e faça lançamentos rápidos.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-produto"><i class="fas fa-plus"></i> Novo Produto</button>
         </div>
 
         <section class="kpi-section">
             <div class="kpi-card">
                 <div class="kpi-info">
-                    <h3>Total de Itens</h3>
-                    <p>12.450</p>
+                    <h3>Total em Estoque</h3>
+                    <p>{{ ('%.3f'|format(total_em_estoque)).rstrip('0').rstrip('.') }}</p>
                 </div>
                 <div class="kpi-icon"><i class="fas fa-box"></i></div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-info">
                     <h3>Baixo Estoque</h3>
-                    <p class="text-danger">43</p>
+                    <p class="text-danger">{{ total_baixo_estoque }}</p>
                 </div>
                 <div class="kpi-icon danger-bg"><i class="fas fa-exclamation-triangle"></i></div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-info">
-                    <h3>Categorias</h3>
-                    <p>8</p>
+                    <h3>Famílias</h3>
+                    <p>{{ total_familias }}</p>
                 </div>
                 <div class="kpi-icon"><i class="fas fa-tags"></i></div>
             </div>
@@ -181,175 +184,326 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar por código, nome ou marca...">
+                <input type="text" id="dashboard-search" placeholder="Buscar por código, nome, marca, família ou localização...">
             </div>
             <div class="filters">
                 <select name="categoria" id="categoria">
-                    <option value="todos">Todas as Categorias</option>
-                    <option value="eletronicos">Eletrônicos</option>
-                    <option value="papelaria">Papelaria & Escolar</option>
-                    <option value="consumiveis">Consumíveis (Cartuchos/Toners)</option>
-                    <option value="moveis">Móveis de Escritório</option>
+                    <option value="todos">Todas as Famílias</option>
+                    {% for familia in familias %}
+                    <option value="{{ familia.id }}">{{ familia.nome }}</option>
+                    {% endfor %}
                 </select>
                 <select name="status" id="status">
                     <option value="todos">Status: Todos</option>
                     <option value="ok">Estoque Normal</option>
                     <option value="baixo">Estoque Baixo</option>
+                    <option value="zerado">Sem Estoque</option>
                 </select>
             </div>
         </section>
 
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="dashboard-table">
                 <thead>
                     <tr>
                         <th>Cód.</th>
                         <th>Produto</th>
-                        <th>Categoria</th>
+                        <th>Família</th>
                         <th>Qtd.</th>
+                        <th>Preço</th>
+                        <th>Localização</th>
                         <th>Status</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>#EL992</td>
-                        <td>Monitor Dell 24" Full HD</td>
-                        <td><span class="badge cat-eletronico">Eletrônicos</span></td>
-                        <td>45</td>
-                        <td><span class="status status-ok">Normal</span></td>
+                    {% for produto in produtos %}
+                    {% set quantidade = produto.quantidade or 0 %}
+                    {% set status = 'zerado' if quantidade <= 0 else 'baixo' if quantidade <= 5 else 'ok' %}
+                    {% set familia_id = produto.sku.familia.id if produto.sku and produto.sku.familia else '' %}
+                    <tr data-dashboard-row data-search-text="{{ produto.sku.codigo if produto.sku else '' }} {{ produto.sku.nome if produto.sku else '' }} {{ produto.sku.marca.nome if produto.sku and produto.sku.marca else '' }} {{ produto.sku.familia.nome if produto.sku and produto.sku.familia else '' }} {{ produto.corredor or '' }} {{ produto.prateleira or '' }}" data-category="{{ familia_id }}" data-status="{{ status }}">
+                        <td><strong>{{ produto.sku.codigo if produto.sku else '-' }}</strong></td>
                         <td>
-                            <button class="btn-icon"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger"><i class="fas fa-trash"></i></button>
+                            {{ produto.sku.nome if produto.sku else '-' }}<br>
+                            <small>{{ produto.sku.marca.nome if produto.sku and produto.sku.marca else 'Sem marca' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: #f1f5f9; color: #475569;">
+                                {{ produto.sku.familia.nome if produto.sku and produto.sku.familia else 'Sem família' }}
+                            </span>
+                        </td>
+                        <td>{{ ('%.3f'|format(quantidade)).rstrip('0').rstrip('.') }}</td>
+                        <td>R$ {{ '%.2f'|format(produto.preco) }}</td>
+                        <td>
+                            {% if produto.corredor or produto.prateleira %}
+                                {{ produto.corredor or '-' }} / {{ produto.prateleira or '-' }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if status == 'ok' %}
+                            <span class="status status-ok">Normal</span>
+                            {% elif status == 'baixo' %}
+                            <span class="status status-danger">Baixo</span>
+                            {% else %}
+                            <span class="status" style="color: var(--text-muted);">Sem estoque</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn-icon" title="Editar" data-id="{{ produto.id }}" onclick="abrirEditarProduto(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('produtos.deletar_produto', id=produto.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este produto?');">
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
-                    <tr>
-                        <td>#PA105</td>
-                        <td>Caderno Universitário 10 Matérias</td>
-                        <td><span class="badge cat-papelaria">Papelaria</span></td>
-                        <td>120</td>
-                        <td><span class="status status-ok">Normal</span></td>
-                        <td>
-                            <button class="btn-icon"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger"><i class="fas fa-trash"></i></button>
-                        </td>
+                    {% else %}
+                    <tr id="dashboard-empty-initial">
+                        <td colspan="7" style="text-align: center; padding: 20px;">Nenhum produto em estoque.</td>
                     </tr>
-                    <tr>
-                        <td>#CO022</td>
-                        <td>Cartucho de Tinta HP 664 Preto</td>
-                        <td><span class="badge cat-consumivel">Consumíveis</span></td>
-                        <td>3</td>
-                        <td><span class="status status-danger">Baixo</span></td>
-                        <td>
-                            <button class="btn-icon"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger"><i class="fas fa-trash"></i></button>
-                        </td>
+                    {% endfor %}
+                    <tr id="dashboard-empty-search" style="display: none;">
+                        <td colspan="7" style="text-align: center; padding: 20px;">Nenhum resultado encontrado.</td>
                     </tr>
                 </tbody>
             </table>
         </section>
     </main>
 
-    <!-- MODAL HTML -->
     <div class="modal-overlay" id="modal-produto">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Dar Entrada em Estoque (Produto)</h2>
-                <button class="btn-close" id="btn-close"><i class="fas fa-times"></i></button>
+                <h2>Adicionar Produto ao Estoque</h2>
+                <button class="btn-close" id="btn-close-produto"><i class="fas fa-times"></i></button>
             </div>
 
             <div class="modal-body">
-                <form action="/salvar_produto" method="POST" class="form-produto">
+                <form action="{{ url_for('produtos.cadastrar_produto') }}" method="POST">
+                    <input type="hidden" name="next" value="{{ request.path }}">
 
                     <div class="form-group">
-                        <label for="sku_id">SKU / Catálogo Base</label>
+                        <label for="sku_id">Produto (SKU)</label>
                         <select id="sku_id" name="sku_id" style="width: 100%;" required>
-                            <option value="" disabled selected>Selecione o produto no catálogo...</option>
+                            <option value=""></option>
                             {% for sku in skus %}
-                            <option value="{{ sku.id }}">{{ sku.codigo }} - {{ sku.nome }}</option>
+                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
                             {% endfor %}
                         </select>
-                        <script>
-                            $(document).ready(function() {
-                                $('#sku_id').select2({
-                                    dropdownParent: $('#modal-produto')
-                                });
-                            });
-                        </script>
-                        <small style="color: var(--text-muted); font-size: 0.75rem;">Marca, Categoria e Regras de Peso
-                            são puxadas automaticamente do SKU.</small>
                     </div>
-
-                    <hr style="border: 0; border-top: 1px solid #e9ecef; margin: 20px 0;">
 
                     <div class="form-row">
                         <div class="form-group half">
-                            <label for="quantidade">Quantidade em Estoque</label>
-                            <input type="number" step="0.01" id="quantidade" name="quantidade" placeholder="Ex: 50"
-                                required>
+                            <label for="quantidade">Quantidade</label>
+                            <input type="text" inputmode="decimal" id="quantidade" name="quantidade" placeholder="Ex: 1 ou 1,5" required>
                         </div>
                         <div class="form-group half">
-                            <label for="data_validade">Data de Validade (Opcional)</label>
-                            <input type="date" id="data_validade" name="data_validade">
+                            <label for="preco">Preço de Custo (R$)</label>
+                            <input type="number" step="0.01" id="preco" name="preco" placeholder="Ex: 125.50" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group half">
-                            <label for="preco">Preço de Venda Atual (R$)</label>
-                            <input type="number" step="0.01" id="preco" name="preco" placeholder="Ex: 29.90" required>
+                            <label for="corredor">Corredor</label>
+                            <input type="text" id="corredor" name="corredor" placeholder="Ex: A1">
                         </div>
                         <div class="form-group half">
-                            <label for="preco_promocional">Preço Promocional (Opcional)</label>
-                            <input type="number" step="0.01" id="preco_promocional" name="preco_promocional"
-                                placeholder="Ex: 25.00">
+                            <label for="prateleira">Prateleira</label>
+                            <input type="text" id="prateleira" name="prateleira" placeholder="Ex: P3">
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group half">
-                            <label for="corredor">Corredor / Setor (Opcional)</label>
-                            <input type="text" id="corredor" name="corredor" placeholder="Ex: Corredor A, Frios...">
-                        </div>
-                        <div class="form-group half">
-                            <label for="prateleira">Prateleira / Nível (Opcional)</label>
-                            <input type="text" id="prateleira" name="prateleira"
-                                placeholder="Ex: Nível 2, Prateleira 4...">
-                        </div>
+                    <div class="form-group">
+                        <label for="data_validade">Data de Validade</label>
+                        <input type="date" id="data_validade" name="data_validade">
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" class="btn-secondary" id="btn-cancelar">Cancelar</button>
-                        <button type="submit" class="btn-primary">Salvar Produto</button>
+                        <button type="button" class="btn-secondary" id="btn-cancelar-produto">Cancelar</button>
+                        <button type="submit" class="btn-primary">Adicionar ao Estoque</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <div class="modal-overlay" id="modal-editar-produto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Produto</h2>
+                <button class="btn-close" id="btn-close-editar-produto"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-produto" method="POST">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+
+                    <div class="form-group">
+                        <label for="sku_id_editar">Produto (SKU)</label>
+                        <select id="sku_id_editar" name="sku_id" style="width: 100%;" required>
+                            <option value=""></option>
+                            {% for sku in skus %}
+                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="quantidade_editar">Quantidade</label>
+                            <input type="text" inputmode="decimal" id="quantidade_editar" name="quantidade" placeholder="Ex: 1 ou 1,5" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="preco_editar">Preço de Custo (R$)</label>
+                            <input type="number" step="0.01" id="preco_editar" name="preco" placeholder="Ex: 125.50" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="corredor_editar">Corredor</label>
+                            <input type="text" id="corredor_editar" name="corredor" placeholder="Ex: A1">
+                        </div>
+                        <div class="form-group half">
+                            <label for="prateleira_editar">Prateleira</label>
+                            <input type="text" id="prateleira_editar" name="prateleira" placeholder="Ex: P3">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data_validade_editar">Data de Validade</label>
+                        <input type="date" id="data_validade_editar" name="data_validade">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-produto">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
-        const btnNovo = document.getElementById('btn-novo');
-        const btnClose = document.getElementById('btn-close');
-        const btnCancelar = document.getElementById('btn-cancelar');
-        const modal = document.getElementById('modal-produto');
+        const btnNovoProduto = document.getElementById('btn-novo-produto');
+        const modalProduto = document.getElementById('modal-produto');
+        const btnCloseProduto = document.getElementById('btn-close-produto');
+        const btnCancelarProduto = document.getElementById('btn-cancelar-produto');
 
-        btnNovo.addEventListener('click', () => {
-            modal.classList.add('active');
-        });
+        const modalEditarProduto = document.getElementById('modal-editar-produto');
+        const btnCloseEditarProduto = document.getElementById('btn-close-editar-produto');
+        const btnCancelarEditarProduto = document.getElementById('btn-cancelar-editar-produto');
+        const formEditarProduto = document.getElementById('form-editar-produto');
 
-        const fecharModal = () => {
-            modal.classList.remove('active');
-        };
+        const searchInput = document.getElementById('dashboard-search');
+        const categoriaSelect = document.getElementById('categoria');
+        const statusSelect = document.getElementById('status');
+        const tabelaCorpo = document.querySelector('#dashboard-table tbody');
+        const linhasProdutos = Array.from(document.querySelectorAll('[data-dashboard-row]'));
+        const linhaNenhumResultado = document.getElementById('dashboard-empty-search');
+        const linhaNenhumProduto = document.getElementById('dashboard-empty-initial');
 
-        btnClose.addEventListener('click', fecharModal);
-        btnCancelar.addEventListener('click', fecharModal);
+        const normalizarTexto = (valor) => (valor || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
 
-        window.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                fecharModal();
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        if (btnNovoProduto) {
+            btnNovoProduto.addEventListener('click', () => modalProduto.classList.add('active'));
+        }
+
+        btnCloseProduto.addEventListener('click', () => fecharModal(modalProduto));
+        btnCancelarProduto.addEventListener('click', () => fecharModal(modalProduto));
+        btnCloseEditarProduto.addEventListener('click', () => fecharModal(modalEditarProduto));
+        btnCancelarEditarProduto.addEventListener('click', () => fecharModal(modalEditarProduto));
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modalProduto) {
+                fecharModal(modalProduto);
+            }
+
+            if (event.target === modalEditarProduto) {
+                fecharModal(modalEditarProduto);
             }
         });
+
+        function aplicarFiltrosDashboard() {
+            if (!linhasProdutos.length) {
+                return;
+            }
+
+            const textoBusca = normalizarTexto(searchInput.value);
+            const categoriaSelecionada = categoriaSelect.value;
+            const statusSelecionado = statusSelect.value;
+            let visiveis = 0;
+
+            linhasProdutos.forEach((linha) => {
+                const textoLinha = normalizarTexto(linha.dataset.searchText || linha.textContent);
+                const categoriaLinha = linha.dataset.category || '';
+                const statusLinha = linha.dataset.status || '';
+
+                const atendeBusca = !textoBusca || textoLinha.includes(textoBusca);
+                const atendeCategoria = categoriaSelecionada === 'todos' || categoriaLinha === categoriaSelecionada;
+                const atendeStatus = statusSelecionado === 'todos' || statusLinha === statusSelecionado;
+                const mostrar = atendeBusca && atendeCategoria && atendeStatus;
+
+                linha.style.display = mostrar ? '' : 'none';
+                if (mostrar) {
+                    visiveis += 1;
+                }
+            });
+
+            if (linhaNenhumProduto) {
+                linhaNenhumProduto.style.display = linhasProdutos.length ? 'none' : '';
+            }
+
+            linhaNenhumResultado.style.display = visiveis === 0 ? '' : 'none';
+        }
+
+        function abrirEditarProduto(button) {
+            const id = button.getAttribute('data-id');
+
+            fetch(`/produtos/get/${id}`)
+                .then((resposta) => resposta.json())
+                .then((data) => {
+                    document.getElementById('quantidade_editar').value = data.quantidade;
+                    document.getElementById('preco_editar').value = data.preco;
+                    document.getElementById('corredor_editar').value = data.corredor || '';
+                    document.getElementById('prateleira_editar').value = data.prateleira || '';
+                    document.getElementById('data_validade_editar').value = data.data_validade || '';
+
+                    $('#sku_id_editar').val(String(data.sku_id || '')).trigger('change');
+                    formEditarProduto.action = `/produtos/editar/${id}`;
+                    fecharModal(modalProduto);
+                    modalEditarProduto.classList.add('active');
+                })
+                .catch((erro) => console.error('Erro ao buscar dados:', erro));
+        }
+
+        searchInput.addEventListener('input', aplicarFiltrosDashboard);
+        categoriaSelect.addEventListener('change', aplicarFiltrosDashboard);
+        statusSelect.addEventListener('change', aplicarFiltrosDashboard);
+
+        $(document).ready(function () {
+            $('#sku_id').select2({
+                dropdownParent: $('#modal-produto'),
+                placeholder: 'Busque por nome ou código do SKU'
+            });
+
+            $('#sku_id_editar').select2({
+                dropdownParent: $('#modal-editar-produto'),
+                placeholder: 'Busque por nome ou código do SKU'
+            });
+        });
+
+        aplicarFiltrosDashboard();
     </script>
 
 </body>

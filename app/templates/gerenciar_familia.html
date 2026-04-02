@@ -105,12 +105,12 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar familia por nome...">
+                <input type="text" placeholder="Buscar familia por nome..." data-table-search data-table-target="#familia-table" data-empty-message="Nenhuma família encontrada.">
             </div>
         </section>
 
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="familia-table">
                 <thead>
                     <tr>
                         <th>Nome da Familia</th>
@@ -120,7 +120,7 @@
                 </thead>
                 <tbody>
                     {% for familia in familias %}
-                    <tr>
+                    <tr data-searchable-row data-search-text="{{ familia.nome }} {{ familia.skus|length }}">
                         <td><strong>{{ familia.nome }}</strong></td>
                         <td style="text-align: center;">
                             <span class="badge" style="background: #f1f5f9; color: #475569;">
@@ -187,6 +187,7 @@
     </div>
 
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
         const btnNovaFamilia = document.getElementById('btn-nova-familia');

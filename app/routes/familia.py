@@ -79,6 +79,14 @@ def deletar_familia(id):
     if not familia:
         flash('Familia não encontrada!', 'danger')
         return redirect(url_for('familia.gerenciar_familia'))
+
+    if familia.tipos:
+        flash('Não é possível excluir a família enquanto houver tipos vinculados a ela.', 'warning')
+        return redirect(url_for('familia.gerenciar_familia'))
+
+    if familia.skus:
+        flash('Não é possível excluir a família enquanto houver SKUs vinculados a ela.', 'warning')
+        return redirect(url_for('familia.gerenciar_familia'))
     
     try:
         db.session.delete(familia)

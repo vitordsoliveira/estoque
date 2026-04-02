@@ -106,12 +106,12 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar tipo por nome...">
+                <input type="text" placeholder="Buscar tipo por nome ou família..." data-table-search data-table-target="#tipo-table" data-empty-message="Nenhum tipo encontrado.">
             </div>
         </section>
 
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="tipo-table">
                 <thead>
                     <tr>
                         <th>Nome do Tipo</th>
@@ -121,7 +121,7 @@
                 </thead>
                 <tbody>
                     {% for tipo in tipos %}
-                    <tr>
+                    <tr data-searchable-row data-search-text="{{ tipo.nome }} {{ tipo.familia.nome }}">
                         <td><strong>{{ tipo.nome }}</strong></td>
                         <td>{{ tipo.familia.nome }}</td>
                         <td>
@@ -206,6 +206,7 @@
     </div>
 
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
         const btnNovoTipo = document.getElementById('btn-novo-tipo');

@@ -105,12 +105,12 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar marca por nome...">
+                <input type="text" placeholder="Buscar marca por nome..." data-table-search data-table-target="#marca-table" data-empty-message="Nenhuma marca encontrada.">
             </div>
         </section>
 
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="marca-table">
                 <thead>
                     <tr>
                         <th>Nome da Marca</th>
@@ -120,7 +120,7 @@
                 </thead>
                 <tbody>
                     {% for marca in marcas %}
-                    <tr>
+                    <tr data-searchable-row data-search-text="{{ marca.nome }} {{ marca.skus|length }}">
                         <td><strong>{{ marca.nome }}</strong></td>
                         <td style="text-align: center;">
                             <span class="badge" style="background: #f1f5f9; color: #475569;">
@@ -187,6 +187,7 @@
     </div>
 
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
         const btnNovaMarca = document.getElementById('btn-nova-marca');

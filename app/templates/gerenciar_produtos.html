@@ -115,8 +115,15 @@
             <button class="btn-primary" id="btn-novo-produto"><i class="fas fa-plus"></i> Novo Produto</button>
         </div>
 
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por SKU, nome, localização ou validade..." data-table-search data-table-target="#produto-table" data-empty-message="Nenhum produto encontrado.">
+            </div>
+        </section>
+
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="produto-table">
                 <thead>
                     <tr>
                         <th>Produto (SKU)</th>
@@ -129,12 +136,12 @@
                 </thead>
                 <tbody>
                     {% for produto in produtos %}
-                    <tr>
+                    <tr data-searchable-row data-search-text="{{ produto.sku.codigo }} {{ produto.sku.nome }} {{ produto.quantidade }} {{ '%.2f'|format(produto.preco) }} {{ produto.corredor or '' }} {{ produto.prateleira or '' }} {{ produto.data_validade.strftime('%d/%m/%Y') if produto.data_validade else '' }}">
                         <td>
                             <strong>{{ produto.sku.codigo }}</strong><br>
                             <small>{{ produto.sku.nome }}</small>
                         </td>
-                        <td>{{ produto.quantidade }}</td>
+                        <td>{{ ('%.3f'|format(produto.quantidade)).rstrip('0').rstrip('.') }}</td>
                         <td>{{ "%.2f"|format(produto.preco) }}</td>
                         <td>
                             {% if produto.corredor or produto.prateleira %}
@@ -185,7 +192,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="quantidade">Quantidade</label>
-                            <input type="number" step="any" id="quantidade" name="quantidade" placeholder="Ex: 10" required>
+                            <input type="text" inputmode="decimal" id="quantidade" name="quantidade" placeholder="Ex: 1 ou 1,5" required>
                         </div>
                         <div class="form-group half">
                             <label for="preco">Preço de Custo (R$)</label>
@@ -242,7 +249,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="quantidade_editar">Quantidade</label>
-                            <input type="number" step="any" id="quantidade_editar" name="quantidade" placeholder="Ex: 10" required>
+                            <input type="text" inputmode="decimal" id="quantidade_editar" name="quantidade" placeholder="Ex: 1 ou 1,5" required>
                         </div>
                         <div class="form-group half">
                             <label for="preco_editar">Preço de Custo (R$)</label>
@@ -276,6 +283,7 @@
     </div>
 
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
         // Lógica do Modal

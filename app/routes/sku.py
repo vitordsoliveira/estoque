@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from app.models import db, Sku, Marca, Tipo, Familia, Especificacao
+from app.models import db, Sku, Marca, Tipo, Familia, Especificacao, Produto, Patrimonio
+from app.number_utils import parse_scaled_input
 from flask import jsonify
 
 sku = Blueprint(
@@ -45,7 +46,7 @@ def cadastrar_sku():
                 db.session.flush()
             especificacao_id = espec.id
 
-        peso = float(peso_str) if peso_str else None
+        peso = parse_scaled_input(peso_str) if peso_str else None
         valor_peso = float(valor_peso_str) if valor_peso_str else None
 
         novo_sku = Sku(codigo=codigo, nome=nome, marca_id=int(marca_id), tipo_id=int(tipo_id), familia_id=int(familia_id), especificacao_id=especificacao_id, peso=peso, valorPeso=valor_peso)
@@ -96,7 +97,7 @@ def editar_sku(id):
                     db.session.flush()
                 especificacao_id = espec.id
 
-            peso = float(peso_str) if peso_str else None
+            peso = parse_scaled_input(peso_str) if peso_str else None
             valor_peso = float(valor_peso_str) if valor_peso_str else None
 
             sku_obj.codigo = codigo
@@ -126,8 +127,23 @@ def deletar_sku(id):
     if not sku_obj:
         flash('SKU não encontrado!', 'danger')
         return redirect(url_for('sku.gerenciar_sku'))
+
+    produtos_vinculados = Produto.query.filter_by(sku_id=id).all()
+    possui_estoque = any((produto.quantidade or 0) > 0 for produto in produtos_vinculados)
+
+    if possui_estoque:
+        flash('Não é possível excluir o SKU enquanto houver produtos com estoque vinculado a ele.', 'warning')
+        return redirect(url_for('sku.gerenciar_sku'))
+
+    patrimonios_vinculados = Patrimonio.query.filter_by(sku_id=id).count()
+    if patrimonios_vinculados:
+        flash('Não é possível excluir o SKU enquanto houver patrimônios vinculados a ele.', 'warning')
+        return redirect(url_for('sku.gerenciar_sku'))
     
     try:
+        for produto in produtos_vinculados:
+            db.session.delete(produto)
+
         db.session.delete(sku_obj)
         db.session.commit()
         flash('SKU deletado com sucesso!', 'success')
