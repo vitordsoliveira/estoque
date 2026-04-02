@@ -3,7 +3,6 @@ from app.models import db, Sku, Marca, Tipo, Familia, Especificacao, Produto, Pa
 from app.number_utils import parse_scaled_input
 from flask import jsonify
 import re
-import unicodedata
 
 sku = Blueprint(
     'sku',
@@ -12,20 +11,15 @@ sku = Blueprint(
 )
 
 
-def gerar_prefixo_familia(familia_nome):
-    nome_normalizado = unicodedata.normalize('NFD', familia_nome.upper())
-    nome_limpo = ''.join(
-        caractere
-        for caractere in nome_normalizado
-        if unicodedata.category(caractere) != 'Mn' and caractere.isalnum()
-    )
+def gerar_prefixo_familia(familia_id):
+    if familia_id > 999:
+        raise ValueError('A família excede o limite suportado para geração automática de SKU.')
 
-    prefixo = nome_limpo[:3].ljust(3, 'X')
-    return prefixo
+    return f'{familia_id:03d}'
 
 
 def gerar_codigo_sku_para_familia(familia):
-    prefixo = gerar_prefixo_familia(familia.nome)
+    prefixo = gerar_prefixo_familia(familia.id)
     skus_existentes = Sku.query.filter(Sku.codigo.like(f'{prefixo}%')).all()
     maior_sequencia = 0
 
@@ -122,7 +116,6 @@ def editar_sku(id):
         return redirect(url_for('sku.gerenciar_sku'))
     
     if request.method == 'POST':
-        codigo = request.form.get('codigo', '').strip()
         nome = request.form.get('nome', '').strip()
         marca_id = request.form.get('marca_id')
         tipo_id = request.form.get('tipo_id')
@@ -131,15 +124,11 @@ def editar_sku(id):
         valor_peso_str = request.form.get('valorPeso')
         especificacao_nome = request.form.get('especificacao_nome', '').strip()
 
-        if not all([codigo, nome, marca_id, tipo_id, familia_id]):
-            flash('Código SKU, Nome, Marca, Tipo e Família são campos obrigatórios.', 'warning')
+        if not all([nome, marca_id, tipo_id, familia_id]):
+            flash('Nome, Marca, Tipo e Família são campos obrigatórios.', 'warning')
             return redirect(url_for('sku.gerenciar_sku'))
 
         try:
-            if Sku.query.filter_by(codigo=codigo).filter(Sku.id != id).first():
-                flash(f'O código SKU "{codigo}" já está em uso!', 'danger')
-                return redirect(url_for('sku.gerenciar_sku'))
-
             especificacao_id = None
             if especificacao_nome:
                 espec = Especificacao.query.filter_by(nome=especificacao_nome).first()
@@ -152,7 +141,6 @@ def editar_sku(id):
             peso = parse_scaled_input(peso_str) if peso_str else None
             valor_peso = float(valor_peso_str) if valor_peso_str else None
 
-            sku_obj.codigo = codigo
             sku_obj.nome = nome
             sku_obj.marca_id = int(marca_id)
             sku_obj.tipo_id = int(tipo_id)
@@ -162,7 +150,7 @@ def editar_sku(id):
             sku_obj.valorPeso = valor_peso
 
             db.session.commit()
-            flash(f'SKU "{codigo}" atualizado com sucesso!', 'success')
+            flash(f'SKU "{sku_obj.codigo}" atualizado com sucesso!', 'success')
 
         except Exception as e:
             db.session.rollback()
