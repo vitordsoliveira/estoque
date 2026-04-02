@@ -2,12 +2,43 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.models import db, Sku, Marca, Tipo, Familia, Especificacao, Produto, Patrimonio
 from app.number_utils import parse_scaled_input
 from flask import jsonify
+import re
+import unicodedata
 
 sku = Blueprint(
     'sku',
     __name__,
     url_prefix='/sku' 
 )
+
+
+def gerar_prefixo_familia(familia_nome):
+    nome_normalizado = unicodedata.normalize('NFD', familia_nome.upper())
+    nome_limpo = ''.join(
+        caractere
+        for caractere in nome_normalizado
+        if unicodedata.category(caractere) != 'Mn' and caractere.isalnum()
+    )
+
+    prefixo = nome_limpo[:3].ljust(3, 'X')
+    return prefixo
+
+
+def gerar_codigo_sku_para_familia(familia):
+    prefixo = gerar_prefixo_familia(familia.nome)
+    skus_existentes = Sku.query.filter(Sku.codigo.like(f'{prefixo}%')).all()
+    maior_sequencia = 0
+
+    for sku_existente in skus_existentes:
+        correspondencia = re.fullmatch(rf'{prefixo}(\d{{5}})', sku_existente.codigo or '')
+        if correspondencia:
+            maior_sequencia = max(maior_sequencia, int(correspondencia.group(1)))
+
+    proxima_sequencia = maior_sequencia + 1
+    if proxima_sequencia > 99999:
+        raise ValueError(f'A família "{familia.nome}" atingiu o limite de códigos disponíveis.')
+
+    return f'{prefixo}{proxima_sequencia:05d}'
 
 @sku.route('/gerenciar')
 def gerenciar_sku():
@@ -19,7 +50,6 @@ def gerenciar_sku():
 
 @sku.route('/cadastrar_sku', methods=['POST'])
 def cadastrar_sku():
-    codigo = request.form.get('codigo', '').strip()
     nome = request.form.get('nome', '').strip()
     marca_id = request.form.get('marca_id')
     tipo_id = request.form.get('tipo_id')
@@ -28,14 +58,17 @@ def cadastrar_sku():
     valor_peso_str = request.form.get('valorPeso')
     especificacao_nome = request.form.get('especificacao_nome', '').strip()
 
-    if not all([codigo, nome, marca_id, tipo_id, familia_id]):
-        flash('Código SKU, Nome, Marca, Tipo e Família são campos obrigatórios.', 'warning')
+    if not all([nome, marca_id, tipo_id, familia_id]):
+        flash('Nome, Marca, Tipo e Família são campos obrigatórios.', 'warning')
         return redirect(url_for('sku.gerenciar_sku'))
 
     try:
-        if Sku.query.filter_by(codigo=codigo).first():
-            flash(f'O código SKU "{codigo}" já está em uso!', 'danger')
+        familia = Familia.query.get(int(familia_id))
+        if not familia:
+            flash('Família inválida para geração do SKU.', 'danger')
             return redirect(url_for('sku.gerenciar_sku'))
+
+        codigo = gerar_codigo_sku_para_familia(familia)
 
         especificacao_id = None
         if especificacao_nome:
@@ -60,6 +93,25 @@ def cadastrar_sku():
         flash(f'Ocorreu um erro ao salvar o SKU: {str(e)}', 'danger')
 
     return redirect(url_for('sku.gerenciar_sku'))
+
+
+@sku.route('/gerar_codigo')
+def gerar_codigo_sku():
+    familia_id = request.args.get('familia_id', type=int)
+
+    if not familia_id:
+        return jsonify({'error': 'Família é obrigatória para gerar o código do SKU.'}), 400
+
+    familia = Familia.query.get(familia_id)
+    if not familia:
+        return jsonify({'error': 'Família não encontrada.'}), 404
+
+    try:
+        codigo = gerar_codigo_sku_para_familia(familia)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    return jsonify({'codigo': codigo})
 
 @sku.route('/editar_sku/<int:id>', methods=['GET', 'POST'])
 def editar_sku(id):

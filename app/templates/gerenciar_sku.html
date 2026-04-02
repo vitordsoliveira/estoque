@@ -182,7 +182,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="codigo">Código do SKU (Único)</label>
-                            <input type="text" id="codigo" name="codigo" placeholder="Código único do item">
+                            <input type="text" id="codigo" name="codigo" placeholder="Gerado automaticamente pela família" readonly>
                         </div>
                         <div class="form-group half">
                             <label for="marca_id">Marca</label>
@@ -337,6 +337,7 @@
         const btnCloseEditarSku = document.getElementById('btn-close-editar-sku');
         const btnCancelarEditarSku = document.getElementById('btn-cancelar-editar-sku');
         const formEditarSku = document.getElementById('form-editar-sku');
+        const codigoInput = document.getElementById('codigo');
 
         btnNovoSku.addEventListener('click', () => modalSku.classList.add('active'));
 
@@ -380,6 +381,27 @@
                 .catch(err => console.error('Erro ao buscar dados:', err));
         }
 
+        function atualizarCodigoSku(familiaId) {
+            if (!familiaId) {
+                codigoInput.value = '';
+                return;
+            }
+
+            fetch(`/sku/gerar_codigo?family_id=${familiaId}`)
+                .then((resposta) => resposta.json().then((data) => ({ ok: resposta.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok) {
+                        throw new Error(data.error || 'Não foi possível gerar o código do SKU.');
+                    }
+
+                    codigoInput.value = data.codigo;
+                })
+                .catch((erro) => {
+                    codigoInput.value = '';
+                    console.error('Erro ao gerar código do SKU:', erro);
+                });
+        }
+
         $(document).ready(function () {
             $('#marca_id').select2({
                 dropdownParent: $('#modal-sku'),
@@ -402,6 +424,7 @@
 
                 familiaNomeInput.val(familiaName || '');
                 familiaIdInput.val(familiaId || '');
+                atualizarCodigoSku(familiaId);
             });
 
             // Para edição
