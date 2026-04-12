@@ -117,6 +117,11 @@
             height: 40px;
         }
 
+        .btn-icon:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .modal-footer {
             display: flex;
             justify-content: flex-end;
@@ -240,7 +245,7 @@
                 <tbody>
                     {% for patrimonio in patrimonios %}
                     {% set status_norm = (patrimonio.status or '').lower() %}
-                    <tr data-searchable-row data-search-text="{{ patrimonio.codigo_patrimonio }} {{ patrimonio.numero_serie or '' }} {{ patrimonio.sku.codigo if patrimonio.sku else '' }} {{ patrimonio.sku.nome if patrimonio.sku else '' }} {{ patrimonio.status or '' }} {{ patrimonio.usuario_responsavel.username if patrimonio.usuario_responsavel else '' }}">
+                    <tr data-searchable-row data-search-text="{{ patrimonio.codigo_patrimonio }} {{ patrimonio.numero_serie or '' }} {{ patrimonio.sku.codigo if patrimonio.sku else '' }} {{ patrimonio.sku.nome if patrimonio.sku else '' }} {{ patrimonio.status or '' }} {{ patrimonio.usuario_responsavel.username if patrimonio.usuario_responsavel else '' }} {{ patrimonio.usuario_responsavel.nome_papel if patrimonio.usuario_responsavel else '' }}">
                         <td>
                             <div class="asset-id-cell">
                                 <strong>{{ patrimonio.codigo_patrimonio }}</strong>
@@ -260,12 +265,21 @@
                             {{ patrimonio.data_compra.strftime('%d/%m/%Y') if patrimonio.data_compra else '-' }}<br>
                             <small>Garantia: {{ patrimonio.fim_garantia.strftime('%d/%m/%Y') if patrimonio.fim_garantia else '-' }}</small>
                         </td>
-                        <td>{{ patrimonio.usuario_responsavel.username if patrimonio.usuario_responsavel else 'Não atribuído' }}</td>
+                        <td>
+                            {% if patrimonio.usuario_responsavel %}
+                            <div class="asset-id-cell">
+                                <strong>{{ patrimonio.usuario_responsavel.username }}</strong>
+                                <small>{{ patrimonio.usuario_responsavel.nome_papel }}</small>
+                            </div>
+                            {% else %}
+                            Não atribuído
+                            {% endif %}
+                        </td>
                         <td>{{ 'R$ %.2f'|format(patrimonio.valor_compra) if patrimonio.valor_compra is not none else '-' }}</td>
                         <td>
                             <button class="btn-icon" title="Editar" data-id="{{ patrimonio.id }}" onclick="abrirEditarPatrimonio(this)"><i class="fas fa-edit"></i></button>
                             <form action="{{ url_for('patrimonios.deletar_patrimonio', id=patrimonio.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este patrimônio?');">
-                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                                <button type="submit" class="btn-icon text-danger" title="{{ 'Desvincule o responsável antes de excluir' if patrimonio.user_id else 'Excluir' }}" {% if patrimonio.user_id %}disabled{% endif %}><i class="fas fa-trash"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -309,6 +323,16 @@
                         </select>
                     </div>
 
+                    <div class="form-group">
+                        <label for="user_id">Usuário responsável</label>
+                        <select id="user_id" name="user_id">
+                            <option value=""></option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.id }}">{{ usuario.username }}{% if usuario.nome_papel %} - {{ usuario.nome_papel }}{% endif %}{% if not usuario.active %} (inativo){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="status">Status</label>
@@ -340,7 +364,7 @@
                         <textarea id="observacoes" name="observacoes" placeholder="Ex: equipamento novo, lote da filial, observações internas."></textarea>
                     </div>
 
-                    <div class="form-helper">A associação do patrimônio a um usuário responsável entra na próxima etapa do backlog. Nesta branch, o foco é o cadastro e a gestão do ativo.</div>
+                    <div class="form-helper">Ao definir um responsável, o sistema ajusta automaticamente o status de <strong>Disponível</strong> para <strong>Em Uso</strong>. Ao remover o vínculo de um item em uso, ele volta para <strong>Disponível</strong>.</div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn-secondary" id="btn-cancelar-patrimonio">Cancelar</button>
@@ -377,6 +401,16 @@
                             <option value=""></option>
                             {% for sku in skus %}
                             <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="user_id_editar">Usuário responsável</label>
+                        <select id="user_id_editar" name="user_id">
+                            <option value=""></option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.id }}">{{ usuario.username }}{% if usuario.nome_papel %} - {{ usuario.nome_papel }}{% endif %}{% if not usuario.active %} (inativo){% endif %}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -463,6 +497,7 @@
                     document.getElementById('observacoes_editar').value = data.observacoes || '';
 
                     $('#sku_id_editar').val(data.sku_id ? String(data.sku_id) : '').trigger('change');
+                    $('#user_id_editar').val(data.user_id ? String(data.user_id) : '').trigger('change');
                     formEditarPatrimonio.action = `/patrimonios/editar/${id}`;
                     modalEditarPatrimonio.classList.add('active');
                 })
@@ -478,6 +513,16 @@
             $('#sku_id_editar').select2({
                 dropdownParent: $('#modal-editar-patrimonio'),
                 placeholder: 'Busque por nome ou código do SKU'
+            });
+
+            $('#user_id').select2({
+                dropdownParent: $('#modal-patrimonio'),
+                placeholder: 'Selecione um responsável (opcional)'
+            });
+
+            $('#user_id_editar').select2({
+                dropdownParent: $('#modal-editar-patrimonio'),
+                placeholder: 'Selecione um responsável (opcional)'
             });
         });
     </script>

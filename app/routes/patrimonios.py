@@ -6,7 +6,7 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 from sqlalchemy import func
 
 from app.auth import admin_required
-from app.models import Patrimonio, Sku, db
+from app.models import Patrimonio, Sku, User, db
 from app.number_utils import parse_decimal_input
 
 patrimonios = Blueprint('patrimonios', __name__, url_prefix='/patrimonios')
@@ -56,6 +56,32 @@ def normalizar_status_patrimonio(valor):
     return STATUS_PATRIMONIO_MAP.get(chave)
 
 
+def resolver_usuario_responsavel(user_id, patrimonio_atual=None):
+    if not user_id:
+        return None, None
+
+    usuario = db.session.get(User, user_id)
+    if not usuario:
+        return None, 'Responsável inválido para o patrimônio.'
+
+    if not usuario.active:
+        if patrimonio_atual and patrimonio_atual.user_id == usuario.id:
+            return usuario, None
+        return None, 'Selecione um usuário ativo para ser o responsável pelo patrimônio.'
+
+    return usuario, None
+
+
+def ajustar_status_por_responsavel(status, usuario_responsavel):
+    if usuario_responsavel and status == 'Disponível':
+        return 'Em Uso'
+
+    if not usuario_responsavel and status == 'Em Uso':
+        return 'Disponível'
+
+    return status
+
+
 def parse_data(raw_value):
     valor = (raw_value or '').strip()
     if not valor:
@@ -94,10 +120,12 @@ def validar_campos_patrimonio(codigo_patrimonio, sku_id, status):
 def gerenciar_patrimonios():
     patrimonios_cadastrados = Patrimonio.query.order_by(Patrimonio.created_at.desc(), Patrimonio.id.desc()).all()
     skus = Sku.query.order_by(Sku.nome.asc()).all()
+    usuarios = User.query.order_by(User.active.desc(), User.username.asc()).all()
     return render_template(
         'gerenciar_patrimonios.html',
         patrimonios=patrimonios_cadastrados,
         skus=skus,
+        usuarios=usuarios,
         status_opcoes=STATUS_PATRIMONIO,
     )
 
@@ -108,6 +136,7 @@ def cadastrar_patrimonio():
     codigo_patrimonio = (request.form.get('codigo_patrimonio') or '').strip().upper()
     numero_serie = normalizar_texto(request.form.get('numero_serie'))
     sku_id = request.form.get('sku_id', type=int)
+    user_id = request.form.get('user_id', type=int)
     status = normalizar_status_patrimonio(request.form.get('status')) or 'Disponível'
     observacoes = normalizar_texto(request.form.get('observacoes'))
 
@@ -127,6 +156,11 @@ def cadastrar_patrimonio():
         flash('SKU inválido para o patrimônio.', 'danger')
         return redirecionar_para_origem()
 
+    usuario_responsavel, erro_responsavel = resolver_usuario_responsavel(user_id)
+    if erro_responsavel:
+        flash(erro_responsavel, 'danger')
+        return redirecionar_para_origem()
+
     try:
         data_compra = parse_data(request.form.get('data_compra'))
         fim_garantia = parse_data(request.form.get('fim_garantia'))
@@ -136,7 +170,8 @@ def cadastrar_patrimonio():
             codigo_patrimonio=codigo_patrimonio,
             numero_serie=numero_serie,
             sku_id=sku.id,
-            status=status,
+            user_id=usuario_responsavel.id if usuario_responsavel else None,
+            status=ajustar_status_por_responsavel(status, usuario_responsavel),
             data_compra=data_compra,
             fim_garantia=fim_garantia,
             valor_compra=valor_compra,
@@ -166,6 +201,7 @@ def editar_patrimonio(id):
     codigo_patrimonio = (request.form.get('codigo_patrimonio') or '').strip().upper()
     numero_serie = normalizar_texto(request.form.get('numero_serie'))
     sku_id = request.form.get('sku_id', type=int)
+    user_id = request.form.get('user_id', type=int)
     status = normalizar_status_patrimonio(request.form.get('status')) or 'Disponível'
     observacoes = normalizar_texto(request.form.get('observacoes'))
 
@@ -185,11 +221,17 @@ def editar_patrimonio(id):
         flash('SKU inválido para o patrimônio.', 'danger')
         return redirecionar_para_origem()
 
+    usuario_responsavel, erro_responsavel = resolver_usuario_responsavel(user_id, patrimonio_atual=patrimonio)
+    if erro_responsavel:
+        flash(erro_responsavel, 'danger')
+        return redirecionar_para_origem()
+
     try:
         patrimonio.codigo_patrimonio = codigo_patrimonio
         patrimonio.numero_serie = numero_serie
         patrimonio.sku_id = sku.id
-        patrimonio.status = status
+        patrimonio.user_id = usuario_responsavel.id if usuario_responsavel else None
+        patrimonio.status = ajustar_status_por_responsavel(status, usuario_responsavel)
         patrimonio.data_compra = parse_data(request.form.get('data_compra'))
         patrimonio.fim_garantia = parse_data(request.form.get('fim_garantia'))
         patrimonio.valor_compra = parse_decimal_input(request.form.get('valor_compra')) if request.form.get('valor_compra') else None
@@ -241,6 +283,7 @@ def get_patrimonio(id):
         'codigo_patrimonio': patrimonio.codigo_patrimonio,
         'numero_serie': patrimonio.numero_serie or '',
         'sku_id': patrimonio.sku_id,
+        'user_id': patrimonio.user_id,
         'status': patrimonio.status,
         'data_compra': patrimonio.data_compra.strftime('%Y-%m-%d') if patrimonio.data_compra else '',
         'fim_garantia': patrimonio.fim_garantia.strftime('%Y-%m-%d') if patrimonio.fim_garantia else '',
