@@ -31,6 +31,8 @@
                     class="{{ 'active' if current_blueprint == 'hierarquia' else '' }}">Hierarquia</a></li>
             <li><a href="{{ url_for('usuarios.gerenciar_usuarios') }}"
                     class="{{ 'active' if current_blueprint == 'usuarios' else '' }}">Usuários</a></li>
+                <li><a href="{{ url_for('patrimonios.gerenciar_patrimonios') }}"
+                    class="{{ 'active' if current_blueprint == 'patrimonios' else '' }}">Patrimônios</a></li>
                 <li><a href="{{ url_for('departamento.gerenciar_departamento') }}"
                     class="{{ 'active' if current_blueprint == 'departamento' else '' }}">Departamentos</a></li>
                 <li><a href="{{ url_for('obra.gerenciar_obra') }}"

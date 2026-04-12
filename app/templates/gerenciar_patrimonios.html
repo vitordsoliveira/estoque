@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Patrimônios - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 720px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .form-group textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            min-height: 42px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 22px;
+            padding-left: 12px;
+            padding-right: 30px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .status-disponivel {
+            background: #ecfdf3;
+            color: #166534;
+        }
+
+        .status-uso {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .status-manutencao {
+            background: #fffbeb;
+            color: #b45309;
+        }
+
+        .status-risco {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .status-neutro {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .asset-id-cell {
+            display: grid;
+            gap: 4px;
+        }
+
+        .asset-id-cell small,
+        .form-helper {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .modal-content {
+                max-width: calc(100% - 24px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Patrimônios</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Cadastre os ativos unitários da empresa vinculados a um SKU, com série, status e dados de compra.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-patrimonio"><i class="fas fa-laptop-house"></i> Novo Patrimônio</button>
+        </div>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por patrimônio, série, SKU, status ou responsável..." data-table-search data-table-target="#patrimonio-table" data-empty-message="Nenhum patrimônio encontrado.">
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table" id="patrimonio-table">
+                <thead>
+                    <tr>
+                        <th>Patrimônio</th>
+                        <th>SKU</th>
+                        <th>Status</th>
+                        <th>Compra / Garantia</th>
+                        <th>Responsável</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patrimonio in patrimonios %}
+                    {% set status_norm = (patrimonio.status or '').lower() %}
+                    <tr data-searchable-row data-search-text="{{ patrimonio.codigo_patrimonio }} {{ patrimonio.numero_serie or '' }} {{ patrimonio.sku.codigo if patrimonio.sku else '' }} {{ patrimonio.sku.nome if patrimonio.sku else '' }} {{ patrimonio.status or '' }} {{ patrimonio.usuario_responsavel.username if patrimonio.usuario_responsavel else '' }}">
+                        <td>
+                            <div class="asset-id-cell">
+                                <strong>{{ patrimonio.codigo_patrimonio }}</strong>
+                                <small>{{ patrimonio.numero_serie or 'Sem número de série' }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <strong>{{ patrimonio.sku.codigo if patrimonio.sku else '-' }}</strong><br>
+                            <small>{{ patrimonio.sku.nome if patrimonio.sku else '-' }}</small>
+                        </td>
+                        <td>
+                            <span class="status-pill {% if status_norm == 'disponível' %}status-disponivel{% elif status_norm == 'em uso' %}status-uso{% elif status_norm == 'em manutenção' %}status-manutencao{% elif status_norm in ['furtado', 'descartado'] %}status-risco{% else %}status-neutro{% endif %}">
+                                {{ patrimonio.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ patrimonio.data_compra.strftime('%d/%m/%Y') if patrimonio.data_compra else '-' }}<br>
+                            <small>Garantia: {{ patrimonio.fim_garantia.strftime('%d/%m/%Y') if patrimonio.fim_garantia else '-' }}</small>
+                        </td>
+                        <td>{{ patrimonio.usuario_responsavel.username if patrimonio.usuario_responsavel else 'Não atribuído' }}</td>
+                        <td>{{ 'R$ %.2f'|format(patrimonio.valor_compra) if patrimonio.valor_compra is not none else '-' }}</td>
+                        <td>
+                            <button class="btn-icon" title="Editar" data-id="{{ patrimonio.id }}" onclick="abrirEditarPatrimonio(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('patrimonios.deletar_patrimonio', id=patrimonio.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este patrimônio?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 24px;">Nenhum patrimônio cadastrado ainda.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-patrimonio">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Patrimônio</h2>
+                <button class="btn-close" id="btn-close-patrimonio"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('patrimonios.cadastrar_patrimonio') }}" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="codigo_patrimonio">Código do patrimônio</label>
+                            <input type="text" id="codigo_patrimonio" name="codigo_patrimonio" placeholder="Ex: TI-00124" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="numero_serie">Número de série</label>
+                            <input type="text" id="numero_serie" name="numero_serie" placeholder="Ex: SN-ABC12345">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sku_id">SKU de referência</label>
+                        <select id="sku_id" name="sku_id" required>
+                            <option value=""></option>
+                            {% for sku in skus %}
+                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select id="status" name="status">
+                                {% for status in status_opcoes %}
+                                <option value="{{ status }}">{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="valor_compra">Valor de compra (R$)</label>
+                            <input type="text" inputmode="decimal" id="valor_compra" name="valor_compra" placeholder="Ex: 2599,90">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="data_compra">Data de compra</label>
+                            <input type="date" id="data_compra" name="data_compra">
+                        </div>
+                        <div class="form-group">
+                            <label for="fim_garantia">Fim da garantia</label>
+                            <input type="date" id="fim_garantia" name="fim_garantia">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoes">Observações</label>
+                        <textarea id="observacoes" name="observacoes" placeholder="Ex: equipamento novo, lote da filial, observações internas."></textarea>
+                    </div>
+
+                    <div class="form-helper">A associação do patrimônio a um usuário responsável entra na próxima etapa do backlog. Nesta branch, o foco é o cadastro e a gestão do ativo.</div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-patrimonio">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Patrimônio</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-editar-patrimonio">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Patrimônio</h2>
+                <button class="btn-close" id="btn-close-editar-patrimonio"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-patrimonio" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="codigo_patrimonio_editar">Código do patrimônio</label>
+                            <input type="text" id="codigo_patrimonio_editar" name="codigo_patrimonio" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="numero_serie_editar">Número de série</label>
+                            <input type="text" id="numero_serie_editar" name="numero_serie">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sku_id_editar">SKU de referência</label>
+                        <select id="sku_id_editar" name="sku_id" required>
+                            <option value=""></option>
+                            {% for sku in skus %}
+                            <option value="{{ sku.id }}">{{ sku.nome }} ({{ sku.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="status_editar">Status</label>
+                            <select id="status_editar" name="status">
+                                {% for status in status_opcoes %}
+                                <option value="{{ status }}">{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="valor_compra_editar">Valor de compra (R$)</label>
+                            <input type="text" inputmode="decimal" id="valor_compra_editar" name="valor_compra">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="data_compra_editar">Data de compra</label>
+                            <input type="date" id="data_compra_editar" name="data_compra">
+                        </div>
+                        <div class="form-group">
+                            <label for="fim_garantia_editar">Fim da garantia</label>
+                            <input type="date" id="fim_garantia_editar" name="fim_garantia">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoes_editar">Observações</label>
+                        <textarea id="observacoes_editar" name="observacoes"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-patrimonio">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Patrimônio</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
+    <script>
+        const btnNovoPatrimonio = document.getElementById('btn-novo-patrimonio');
+        const modalPatrimonio = document.getElementById('modal-patrimonio');
+        const btnClosePatrimonio = document.getElementById('btn-close-patrimonio');
+        const btnCancelarPatrimonio = document.getElementById('btn-cancelar-patrimonio');
+
+        const modalEditarPatrimonio = document.getElementById('modal-editar-patrimonio');
+        const btnCloseEditarPatrimonio = document.getElementById('btn-close-editar-patrimonio');
+        const btnCancelarEditarPatrimonio = document.getElementById('btn-cancelar-editar-patrimonio');
+        const formEditarPatrimonio = document.getElementById('form-editar-patrimonio');
+
+        btnNovoPatrimonio.addEventListener('click', () => modalPatrimonio.classList.add('active'));
+
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        btnClosePatrimonio.addEventListener('click', () => fecharModal(modalPatrimonio));
+        btnCancelarPatrimonio.addEventListener('click', () => fecharModal(modalPatrimonio));
+        btnCloseEditarPatrimonio.addEventListener('click', () => fecharModal(modalEditarPatrimonio));
+        btnCancelarEditarPatrimonio.addEventListener('click', () => fecharModal(modalEditarPatrimonio));
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modalPatrimonio) fecharModal(modalPatrimonio);
+            if (event.target === modalEditarPatrimonio) fecharModal(modalEditarPatrimonio);
+        });
+
+        function abrirEditarPatrimonio(button) {
+            const id = button.getAttribute('data-id');
+
+            fetch(`/patrimonios/get/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('codigo_patrimonio_editar').value = data.codigo_patrimonio || '';
+                    document.getElementById('numero_serie_editar').value = data.numero_serie || '';
+                    document.getElementById('status_editar').value = data.status || 'Disponível';
+                    document.getElementById('data_compra_editar').value = data.data_compra || '';
+                    document.getElementById('fim_garantia_editar').value = data.fim_garantia || '';
+                    document.getElementById('valor_compra_editar').value = data.valor_compra ?? '';
+                    document.getElementById('observacoes_editar').value = data.observacoes || '';
+
+                    $('#sku_id_editar').val(data.sku_id ? String(data.sku_id) : '').trigger('change');
+                    formEditarPatrimonio.action = `/patrimonios/editar/${id}`;
+                    modalEditarPatrimonio.classList.add('active');
+                })
+                .catch(err => console.error('Erro ao buscar patrimônio:', err));
+        }
+
+        $(document).ready(function () {
+            $('#sku_id').select2({
+                dropdownParent: $('#modal-patrimonio'),
+                placeholder: 'Busque por nome ou código do SKU'
+            });
+
+            $('#sku_id_editar').select2({
+                dropdownParent: $('#modal-editar-patrimonio'),
+                placeholder: 'Busque por nome ou código do SKU'
+            });
+        });
+    </script>
+</body>
+
+</html>

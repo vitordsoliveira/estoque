@@ -30,6 +30,7 @@ def create_app():
         from app.routes.departamento import departamento
         from app.routes.hierarquia import hierarquia
         from app.routes.obra import obra
+        from app.routes.patrimonios import patrimonios
         from app.routes.usuarios import usuarios
         from app.routes.marca import marca
         from app.routes.sku import sku
@@ -43,6 +44,7 @@ def create_app():
         app.register_blueprint(departamento)
         app.register_blueprint(hierarquia)
         app.register_blueprint(obra)
+        app.register_blueprint(patrimonios)
         app.register_blueprint(usuarios)
         app.register_blueprint(main)
         app.register_blueprint(produtos)
