@@ -430,6 +430,10 @@
                     </div>
 
                     <div class="qr-preview-actions">
+                        <a id="sku-qrcode-balance" class="btn-secondary" href="#">
+                            <i class="fas fa-boxes-stacked"></i>
+                            Abrir no balanço
+                        </a>
                         <a id="sku-qrcode-open" class="btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
                             <i class="fas fa-up-right-from-square"></i>
                             Abrir SVG
@@ -463,6 +467,7 @@
         const qrPreview = document.getElementById('sku-qrcode-preview');
         const qrCodigo = document.getElementById('sku-qrcode-codigo');
         const qrNome = document.getElementById('sku-qrcode-nome');
+        const qrBalanceLink = document.getElementById('sku-qrcode-balance');
         const qrOpenLink = document.getElementById('sku-qrcode-open');
         const qrDownloadLink = document.getElementById('sku-qrcode-download');
 
@@ -494,6 +499,7 @@
             qrPreview.alt = `QR Code do SKU ${codigo}`;
             qrCodigo.textContent = codigo;
             qrNome.textContent = nome;
+            qrBalanceLink.href = `/balanco/gerenciar?sku_id=${id}`;
             qrOpenLink.href = svgUrl;
             qrDownloadLink.href = downloadUrl;
 

@@ -26,6 +26,7 @@ def create_app():
         from app import models 
         
         from app.routes.auth import auth
+        from app.routes.balanco import balanco
         from app.routes.departamento import departamento
         from app.routes.obra import obra
         from app.routes.usuarios import usuarios
@@ -37,6 +38,7 @@ def create_app():
         from app.routes.main import main
 
         app.register_blueprint(auth)
+        app.register_blueprint(balanco)
         app.register_blueprint(departamento)
         app.register_blueprint(obra)
         app.register_blueprint(usuarios)

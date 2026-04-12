@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Balanço - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+
+    <style>
+        .balanco-shell {
+            display: grid;
+            gap: 24px;
+        }
+
+        .scan-shell,
+        .balanco-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .scan-card,
+        .balanco-panel {
+            background: var(--white);
+            border-radius: 22px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+            padding: 24px;
+        }
+
+        .scan-card.highlight-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #ecfeff 100%);
+            border-color: rgba(8, 145, 178, 0.2);
+        }
+
+        .eyebrow {
+            display: inline-block;
+            color: #0f766e;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .scan-card h3,
+        .balanco-panel h3 {
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        .scan-card p,
+        .balanco-panel p {
+            color: #52637a;
+            line-height: 1.6;
+        }
+
+        .scan-form,
+        .quick-entry-form {
+            display: grid;
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .scan-form label,
+        .quick-entry-form label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .scan-form textarea,
+        .quick-entry-form input {
+            width: 100%;
+            border: 1px solid #d8e1eb;
+            border-radius: 16px;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background: #fbfdff;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .scan-form textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .scan-form textarea:focus,
+        .quick-entry-form input:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+        }
+
+        .scan-actions,
+        .panel-actions,
+        .entry-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .sku-identity {
+            display: grid;
+            gap: 14px;
+        }
+
+        .sku-title {
+            display: grid;
+            gap: 4px;
+        }
+
+        .sku-title strong {
+            font-size: 1.4rem;
+            color: var(--text-main);
+        }
+
+        .sku-meta,
+        .status-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .meta-pill,
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+        .meta-pill {
+            background: rgba(255, 255, 255, 0.72);
+            color: #0f172a;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+        }
+
+        .status-chip {
+            white-space: nowrap;
+        }
+
+        .status-chip.pending {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .status-chip.ready {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .helper-text {
+            margin: 0;
+            font-size: 0.88rem;
+            color: #64748b;
+        }
+
+        .entry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .empty-panel {
+            display: grid;
+            place-items: center;
+            min-height: 180px;
+            padding: 24px;
+            border-radius: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            background: #f8fafc;
+        }
+
+        .localizacao-table td:last-child,
+        .localizacao-table th:last-child {
+            text-align: center;
+        }
+
+        .balanco-table-shell .table-hint {
+            margin: 0 0 18px;
+            color: #64748b;
+        }
+
+        @media (max-width: 640px) {
+            .scan-card,
+            .balanco-panel {
+                padding: 18px;
+            }
+
+            .panel-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container balanco-shell">
+        <div class="page-header">
+            <div>
+                <h2>Sistema de Balanço por QR Code</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Leia o QR do SKU, identifique os produtos relacionados e atualize o estoque sem sair da conferência.</p>
+            </div>
+            <div class="panel-actions">
+                {% if sku %}
+                <a class="btn-secondary" href="{{ url_for('sku.qrcode_sku_svg', id=sku.id) }}" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-qrcode"></i>
+                    Ver QR atual
+                </a>
+                {% endif %}
+                <a class="btn-secondary" href="{{ url_for('balanco.gerenciar_balanco') }}">
+                    <i class="fas fa-rotate-left"></i>
+                    Limpar leitura
+                </a>
+            </div>
+        </div>
+
+        <section class="scan-shell">
+            <article class="scan-card">
+                <span class="eyebrow">Leitura</span>
+                <h3>Resolver SKU no balanço</h3>
+                <p>Cole o payload do QR Code gerado no SKU ou informe apenas o código do SKU. O sistema cruza automaticamente os produtos vinculados e resume o saldo recebido, endereçado e total.</p>
+
+                <form method="GET" class="scan-form">
+                    <div>
+                        <label for="leitura">Payload do QR Code ou código do SKU</label>
+                        <textarea id="leitura" name="leitura" placeholder='Ex: {"type":"sku","id":12,"codigo":"00100001"} ou somente 00100001' autofocus>{{ leitura }}</textarea>
+                    </div>
+
+                    <div class="scan-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-magnifying-glass"></i>
+                            Identificar SKU
+                        </button>
+                        <a class="btn-secondary" href="{{ url_for('sku.gerenciar_sku') }}">
+                            <i class="fas fa-tags"></i>
+                            Voltar para SKUs
+                        </a>
+                    </div>
+                </form>
+            </article>
+
+            <article class="scan-card highlight-card">
+                {% if sku %}
+                <span class="eyebrow">SKU lido</span>
+                <div class="sku-identity">
+                    <div class="sku-title">
+                        <strong>{{ sku.codigo }}</strong>
+                        <p style="margin: 0;">{{ sku.nome }}</p>
+                    </div>
+
+                    <div class="sku-meta">
+                        <span class="meta-pill"><i class="fas fa-copyright"></i>{{ sku.marca.nome if sku.marca else 'Sem marca' }}</span>
+                        <span class="meta-pill"><i class="fas fa-layer-group"></i>{{ sku.familia.nome if sku.familia else 'Sem família' }}</span>
+                        <span class="meta-pill"><i class="fas fa-shapes"></i>{{ sku.tipo.nome if sku.tipo else 'Sem tipo' }}</span>
+                        <span class="meta-pill"><i class="fas fa-wave-square"></i>{% if origem_leitura == 'qrcode' %}QR Code{% elif origem_leitura == 'codigo' %}Código digitado{% else %}Atalho interno{% endif %}</span>
+                    </div>
+
+                    <p class="helper-text">Nesta versão, o balanço considera como <strong>chegou</strong> todo saldo ainda sem corredor/prateleira preenchidos. O que já possui endereçamento entra automaticamente como <strong>na prateleira</strong>.</p>
+                </div>
+                {% else %}
+                <div class="empty-panel">
+                    <div>
+                        <strong style="display: block; margin-bottom: 8px; color: var(--text-main);">Nenhum SKU identificado ainda</strong>
+                        <p style="margin: 0;">Faça a leitura do QR Code ou informe um código manual para abrir o painel automatizado de conferência.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </article>
+        </section>
+
+        {% if sku %}
+        <section class="kpi-section">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Chegou</h3>
+                    <p>{{ ('%.3f'|format(quantidade_recebida)).rstrip('0').rstrip('.') }}</p>
+                </div>
+                <div class="kpi-icon danger-bg"><i class="fas fa-truck-ramp-box"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Na Prateleira</h3>
+                    <p>{{ ('%.3f'|format(quantidade_prateleira)).rstrip('0').rstrip('.') }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-warehouse"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>No Estoque</h3>
+                    <p>{{ ('%.3f'|format(quantidade_total)).rstrip('0').rstrip('.') }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-boxes-stacked"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Registros Relacionados</h3>
+                    <p>{{ total_registros }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-list-check"></i></div>
+            </div>
+        </section>
+
+        <section class="balanco-grid">
+            <article class="balanco-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Lançamento rápido de entrada</h3>
+                        <p class="helper-text">Registre uma nova chegada já vinculada ao SKU lido. Se deixar corredor e prateleira vazios, o saldo entra como recebido e pendente de endereçamento.</p>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('produtos.cadastrar_produto') }}" method="POST" class="quick-entry-form">
+                    <input type="hidden" name="sku_id" value="{{ sku.id }}">
+                    <input type="hidden" name="next" value="{{ url_for('balanco.gerenciar_balanco', sku_id=sku.id) }}">
+
+                    <div class="entry-grid">
+                        <div>
+                            <label for="quantidade">Quantidade</label>
+                            <input type="text" inputmode="decimal" id="quantidade" name="quantidade" placeholder="Ex: 10 ou 2,5" required>
+                        </div>
+                        <div>
+                            <label for="preco">Preço de custo (R$)</label>
+                            <input type="number" step="0.01" id="preco" name="preco" placeholder="Ex: 89.90" required>
+                        </div>
+                        <div>
+                            <label for="corredor">Corredor</label>
+                            <input type="text" id="corredor" name="corredor" placeholder="Ex: A1">
+                        </div>
+                        <div>
+                            <label for="prateleira">Prateleira</label>
+                            <input type="text" id="prateleira" name="prateleira" placeholder="Ex: P3">
+                        </div>
+                        <div>
+                            <label for="data_validade">Validade</label>
+                            <input type="date" id="data_validade" name="data_validade">
+                        </div>
+                    </div>
+
+                    <div class="entry-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Registrar entrada deste SKU
+                        </button>
+                        <a class="btn-secondary" href="{{ url_for('produtos.gerenciar_produtos') }}">
+                            <i class="fas fa-box-open"></i>
+                            Abrir estoque completo
+                        </a>
+                    </div>
+                </form>
+            </article>
+
+            <article class="balanco-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Mapa por localização</h3>
+                        <p class="helper-text">Resumo consolidado dos registros encontrados para o SKU lido.</p>
+                    </div>
+                </div>
+
+                {% if mapa_localizacoes %}
+                <div class="table-container">
+                    <table class="estoque-table localizacao-table">
+                        <thead>
+                            <tr>
+                                <th>Localização</th>
+                                <th>Quantidade</th>
+                                <th>Registros</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for localizacao in mapa_localizacoes %}
+                            <tr>
+                                <td>{{ localizacao.localizacao }}</td>
+                                <td>{{ ('%.3f'|format(localizacao.quantidade)).rstrip('0').rstrip('.') }}</td>
+                                <td>{{ localizacao.registros }}</td>
+                                <td>
+                                    <span class="status-chip {{ 'ready' if localizacao.enderecado else 'pending' }}">
+                                        {{ 'Na prateleira' if localizacao.enderecado else 'Chegou' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-panel">
+                    <div>
+                        <strong style="display: block; margin-bottom: 8px; color: var(--text-main);">Sem saldo lançado para este SKU</strong>
+                        <p style="margin: 0;">Use o lançamento rápido ao lado para registrar a primeira entrada deste item no estoque.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </article>
+        </section>
+
+        <section class="table-container balanco-table-shell">
+            <div class="panel-header" style="margin-bottom: 0;">
+                <div>
+                    <h3>Produtos relacionados ao SKU</h3>
+                    <p class="table-hint">Cada linha representa um registro de estoque vinculado ao SKU identificado pelo QR Code.</p>
+                </div>
+            </div>
+
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Quantidade</th>
+                        <th>Preço de custo</th>
+                        <th>Localização</th>
+                        <th>Validade</th>
+                        <th>Status operacional</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produto in produtos_relacionados %}
+                    {% set enderecado = produto.corredor or produto.prateleira %}
+                    <tr>
+                        <td>{{ produto.created_at.strftime('%d/%m/%Y %H:%M') if produto.created_at else '-' }}</td>
+                        <td>{{ ('%.3f'|format(produto.quantidade or 0)).rstrip('0').rstrip('.') }}</td>
+                        <td>R$ {{ '%.2f'|format(produto.preco) }}</td>
+                        <td>{{ (produto.corredor or '-') ~ ' / ' ~ (produto.prateleira or '-') if enderecado else 'Recebimento / sem endereço' }}</td>
+                        <td>{{ produto.data_validade.strftime('%d/%m/%Y') if produto.data_validade else '-' }}</td>
+                        <td>
+                            <span class="status-chip {{ 'ready' if enderecado else 'pending' }}">
+                                {{ 'Na prateleira' if enderecado else 'Chegou / aguardando endereço' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 28px;">Nenhum produto relacionado foi encontrado para este SKU.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+    </main>
+
+    {% include '_footer.html' %}
+</body>
+
+</html>
