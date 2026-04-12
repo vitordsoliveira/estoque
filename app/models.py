@@ -10,11 +10,13 @@ class Departamento(db.Model):
     __tablename__ = 'departamento'
     id = Column(Integer, primary_key=True)
     nome = Column(String(100), nullable=False)
+    users = relationship('User', backref='departamento', lazy=True)
 
 class Obra(db.Model):
     __tablename__ = 'obra'
     id = Column(Integer, primary_key=True)
     nome = Column(String(150), nullable=False)
+    users = relationship('User', backref='obra', lazy=True)
 
 class Familia(db.Model):
     __tablename__ = 'familia'
