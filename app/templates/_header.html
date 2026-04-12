@@ -1,5 +1,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 
+{% set current_blueprint = request.blueprint or '' %}
+{% set current_endpoint = request.endpoint or '' %}
+
 <header class="top-navbar">
     <div class="logo-container">
         <i class="fas fa-layer-group"></i>
@@ -8,12 +11,12 @@
 
     <nav class="main-nav">
         <ul>
-            <li><a href="/" class="active">Dashboard</a></li>
-            <li><a href="{{ url_for('produtos.gerenciar_produtos') }}">Produtos</a></li>
-            <li><a href="{{ url_for('sku.gerenciar_sku') }}">SKU</a></li>
-            <li><a href="{{ url_for('marca.gerenciar_marca') }}">Marcas</a></li>
-            <li><a href="{{ url_for('familia.gerenciar_familia') }}">Familias</a></li>
-            <li><a href="{{ url_for('tipo.gerenciar_tipo') }}">Tipos</a></li>
+            <li><a href="{{ url_for('main.index') }}" class="{{ 'active' if current_blueprint == 'main' or current_endpoint == 'main.index' else '' }}">Dashboard</a></li>
+            <li><a href="{{ url_for('produtos.gerenciar_produtos') }}" class="{{ 'active' if current_blueprint == 'produtos' else '' }}">Produtos</a></li>
+            <li><a href="{{ url_for('sku.gerenciar_sku') }}" class="{{ 'active' if current_blueprint == 'sku' else '' }}">SKU</a></li>
+            <li><a href="{{ url_for('marca.gerenciar_marca') }}" class="{{ 'active' if current_blueprint == 'marca' else '' }}">Marcas</a></li>
+            <li><a href="{{ url_for('familia.gerenciar_familia') }}" class="{{ 'active' if current_blueprint == 'familia' else '' }}">Familias</a></li>
+            <li><a href="{{ url_for('tipo.gerenciar_tipo') }}" class="{{ 'active' if current_blueprint == 'tipo' else '' }}">Tipos</a></li>
         </ul>
     </nav>
 
