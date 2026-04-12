@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime, Boolean, Text, Date, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from werkzeug.security import check_password_hash, generate_password_hash
 
 db = SQLAlchemy()
 
@@ -55,6 +56,22 @@ class User(db.Model):
     
     # Relacionamento para saber quais equipamentos da empresa estão com ele
     patrimonios = relationship("Patrimonio", back_populates="usuario_responsavel")
+
+    @staticmethod
+    def hash_password(raw_password):
+        return generate_password_hash(raw_password, method='pbkdf2:sha256', salt_length=16)
+
+    def set_password(self, raw_password):
+        self.password = self.hash_password(raw_password)
+
+    def check_password(self, raw_password):
+        if not self.password:
+            return False
+        return check_password_hash(self.password, raw_password)
+
+    @property
+    def is_admin(self):
+        return (self.classe or '').strip().lower() == 'admin'
 
 class Sku(db.Model):
     __tablename__ = 'sku'

@@ -56,12 +56,48 @@
     gap: 10px;
     color: var(--text-main);
     font-weight: 500;
-    cursor: pointer;
+}
+
+.user-profile-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.user-profile-meta span {
+    font-size: 0.95rem;
+}
+
+.user-profile-meta small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
 }
 
 .user-profile i {
     font-size: 1.8rem;
     color: var(--text-muted);
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.logout-button {
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-main);
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.logout-button:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #f8fbff;
 }
 
 .flash-container {
@@ -133,6 +169,30 @@
 }
 
 @media (max-width: 768px) {
+    .top-navbar {
+        padding: 14px 18px;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .main-nav {
+        width: 100%;
+        order: 3;
+    }
+
+    .main-nav ul {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .user-profile {
+        margin-left: auto;
+    }
+
+    .user-profile-meta {
+        display: none;
+    }
+
     .flash-container {
         top: 76px;
         right: 16px;

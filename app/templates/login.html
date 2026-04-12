@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+</head>
+
+<body class="login-body">
+    <main class="login-shell">
+        <section class="login-showcase">
+            <div class="login-showcase-content">
+                <span class="login-badge">Acesso protegido</span>
+                <h1>Controle seu estoque com autenticação centralizada.</h1>
+                <p>Ao iniciar o sistema, o acesso passa obrigatoriamente pela tela de login. O administrador usa sessão web; usuários comuns podem receber JWT via token dedicado.</p>
+
+                <div class="login-highlights">
+                    <article>
+                        <i class="fas fa-shield-halved"></i>
+                        <div>
+                            <strong>Senha com hash</strong>
+                            <span>As credenciais são validadas com hash PBKDF2.</span>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="fas fa-key"></i>
+                        <div>
+                            <strong>JWT para usuários</strong>
+                            <span>O endpoint de token fica pronto para os perfis não-admin.</span>
+                        </div>
+                    </article>
+                    <article>
+                        <i class="fas fa-user-lock"></i>
+                        <div>
+                            <strong>Admin por sessão</strong>
+                            <span>O admin fixo não recebe JWT e entra pelo fluxo tradicional da aplicação.</span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="login-card">
+                <div class="login-brand">
+                    <div class="login-brand-icon"><i class="fas fa-layer-group"></i></div>
+                    <div>
+                        <span class="login-brand-label">Sistema</span>
+                        <h2>Estoque</h2>
+                    </div>
+                </div>
+
+                <div class="login-copy">
+                    <h3>Entrar</h3>
+                    <p>Use suas credenciais para acessar os módulos internos.</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <section class="login-flash-stack" aria-live="polite" aria-atomic="true">
+                    {% for category, message in messages %}
+                    <div class="login-flash login-flash-{{ category }}">
+                        <i class="fas fa-circle-info"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('auth.login') }}" method="POST" class="login-form">
+                    <input type="hidden" name="next" value="{{ next }}">
+
+                    <label class="login-field">
+                        <span>E-mail</span>
+                        <input type="email" name="email" value="{{ email }}" placeholder="admin@estoque.com" autocomplete="email" required>
+                    </label>
+
+                    <label class="login-field">
+                        <span>Senha</span>
+                        <input type="password" name="password" placeholder="Sua senha" autocomplete="current-password" required>
+                    </label>
+
+                    <button type="submit" class="btn-primary login-submit">
+                        <i class="fas fa-arrow-right-to-bracket"></i>
+                        Entrar no sistema
+                    </button>
+                </form>
+
+                <p class="login-footnote">Admin fixo: cadastro via seed. JWT não se aplica a esse perfil.</p>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

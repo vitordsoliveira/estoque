@@ -5,3 +5,4 @@ pandas
 pymysql
 dotenv
 Flask-Migrate
+PyJWT

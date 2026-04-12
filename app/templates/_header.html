@@ -21,8 +21,19 @@
     </nav>
 
     <div class="user-profile">
-        <span>Olá Usuário</span>
+        <div class="user-profile-meta">
+            <span>Olá {{ current_user.username if current_user else 'Usuário' }}</span>
+            <small>
+                {{ current_user.email if current_user else '' }}
+                {% if current_user and current_user.classe %}
+                • {{ current_user.classe|capitalize }}
+                {% endif %}
+            </small>
+        </div>
         <i class="fas fa-user-circle"></i>
+        <form action="{{ url_for('auth.logout') }}" method="POST" class="logout-form">
+            <button type="submit" class="logout-button">Sair</button>
+        </form>
     </div>
 </header>
 
