@@ -27,6 +27,10 @@
             {% if current_user and current_user.is_admin %}
             <li><a href="{{ url_for('usuarios.gerenciar_usuarios') }}"
                     class="{{ 'active' if current_blueprint == 'usuarios' else '' }}">Usuários</a></li>
+                <li><a href="{{ url_for('departamento.gerenciar_departamento') }}"
+                    class="{{ 'active' if current_blueprint == 'departamento' else '' }}">Departamentos</a></li>
+                <li><a href="{{ url_for('obra.gerenciar_obra') }}"
+                    class="{{ 'active' if current_blueprint == 'obra' else '' }}">Obras</a></li>
             {% endif %}
         </ul>
     </nav>

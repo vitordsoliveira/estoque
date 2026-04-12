@@ -26,6 +26,8 @@ def create_app():
         from app import models 
         
         from app.routes.auth import auth
+        from app.routes.departamento import departamento
+        from app.routes.obra import obra
         from app.routes.usuarios import usuarios
         from app.routes.marca import marca
         from app.routes.sku import sku
@@ -35,6 +37,8 @@ def create_app():
         from app.routes.main import main
 
         app.register_blueprint(auth)
+        app.register_blueprint(departamento)
+        app.register_blueprint(obra)
         app.register_blueprint(usuarios)
         app.register_blueprint(main)
         app.register_blueprint(produtos)

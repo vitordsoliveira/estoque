@@ -2,7 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from sqlalchemy import func
 
 from app.auth import admin_required
-from app.models import User, db
+from app.models import Departamento, Obra, User, db
 
 usuarios = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
@@ -26,11 +26,29 @@ def normalizar_campo(value):
     return value or None
 
 
+def carregar_referencias_usuario():
+    departamentos = Departamento.query.order_by(Departamento.nome.asc()).all()
+    obras = Obra.query.order_by(Obra.nome.asc()).all()
+    return departamentos, obras
+
+
+def resolver_relacao(model_class, entity_id):
+    if not entity_id:
+        return None
+    return db.session.get(model_class, entity_id)
+
+
 @usuarios.route('/gerenciar', methods=['GET'])
 @admin_required
 def gerenciar_usuarios():
     usuarios_cadastrados = User.query.order_by(User.username.asc()).all()
-    return render_template('gerenciar_usuarios.html', usuarios=usuarios_cadastrados)
+    departamentos, obras = carregar_referencias_usuario()
+    return render_template(
+        'gerenciar_usuarios.html',
+        usuarios=usuarios_cadastrados,
+        departamentos=departamentos,
+        obras=obras,
+    )
 
 
 @usuarios.route('/cadastrar', methods=['POST'])
@@ -42,7 +60,19 @@ def cadastrar_usuario():
     cargo = normalizar_campo(request.form.get('cargo'))
     ramal = normalizar_campo(request.form.get('ramal'))
     numero_corporativo = normalizar_campo(request.form.get('numero_corporativo'))
+    departamento_id = request.form.get('departamento_id', type=int)
+    obra_id = request.form.get('obra_id', type=int)
     active = request.form.get('active') == 'on'
+
+    departamento = resolver_relacao(Departamento, departamento_id)
+    if departamento_id and not departamento:
+        flash('Departamento inválido.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    obra = resolver_relacao(Obra, obra_id)
+    if obra_id and not obra:
+        flash('Obra inválida.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
 
     if not username or not email or not password:
         flash('Nome, e-mail e senha são obrigatórios.', 'warning')
@@ -68,6 +98,8 @@ def cadastrar_usuario():
             cargo=cargo,
             ramal=ramal,
             numero_corporativo=numero_corporativo,
+            departamento_id=departamento.id if departamento else None,
+            obra_id=obra.id if obra else None,
             active=active,
             first_login_completed=True
         )
@@ -101,7 +133,19 @@ def editar_usuario(id):
     cargo = normalizar_campo(request.form.get('cargo'))
     ramal = normalizar_campo(request.form.get('ramal'))
     numero_corporativo = normalizar_campo(request.form.get('numero_corporativo'))
+    departamento_id = request.form.get('departamento_id', type=int)
+    obra_id = request.form.get('obra_id', type=int)
     active = request.form.get('active') == 'on'
+
+    departamento = resolver_relacao(Departamento, departamento_id)
+    if departamento_id and not departamento:
+        flash('Departamento inválido.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    obra = resolver_relacao(Obra, obra_id)
+    if obra_id and not obra:
+        flash('Obra inválida.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
 
     if not username or not email:
         flash('Nome e e-mail são obrigatórios.', 'warning')
@@ -125,6 +169,8 @@ def editar_usuario(id):
         usuario.cargo = cargo
         usuario.ramal = ramal
         usuario.numero_corporativo = numero_corporativo
+        usuario.departamento_id = departamento.id if departamento else None
+        usuario.obra_id = obra.id if obra else None
         usuario.active = active
         usuario.first_login_completed = True
 

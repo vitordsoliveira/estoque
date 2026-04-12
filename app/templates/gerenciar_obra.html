@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Obras - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 420px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Obras</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Mantenha as obras disponíveis para vínculo com usuários.</p>
+            </div>
+            <button class="btn-primary" id="btn-nova-obra"><i class="fas fa-plus"></i> Nova Obra</button>
+        </div>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar obra por nome..." data-table-search data-table-target="#obra-table" data-empty-message="Nenhuma obra encontrada.">
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table" id="obra-table">
+                <thead>
+                    <tr>
+                        <th>Obra</th>
+                        <th style="text-align: center;">Usuários Vinculados</th>
+                        <th style="width: 150px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in obras %}
+                    <tr data-searchable-row data-search-text="{{ item.nome }} {{ item.users|length }}">
+                        <td><strong>{{ item.nome }}</strong></td>
+                        <td style="text-align: center;">
+                            <span class="badge" style="background: #f1f5f9; color: #475569;">{{ item.users|length }}</span>
+                        </td>
+                        <td>
+                            <button class="btn-icon" title="Editar" data-id="{{ item.id }}" data-nome="{{ item.nome }}" onclick="abrirEditarObra(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('obra.deletar_obra', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar esta obra?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-obra">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Obra</h2>
+                <button class="btn-close" id="btn-close-obra"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('obra.cadastrar_obra') }}" method="POST">
+                    <div class="form-group">
+                        <label for="nome">Nome da obra</label>
+                        <input type="text" id="nome" name="nome" placeholder="Ex: Obra Centro Logístico" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-obra">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Obra</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-editar-obra">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Obra</h2>
+                <button class="btn-close" id="btn-close-editar-obra"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-editar-obra" method="POST">
+                    <div class="form-group">
+                        <label for="nome-editar">Nome da obra</label>
+                        <input type="text" id="nome-editar" name="nome" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-obra">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Obra</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
+    <script>
+        const btnNovaObra = document.getElementById('btn-nova-obra');
+        const modalObra = document.getElementById('modal-obra');
+        const btnCloseObra = document.getElementById('btn-close-obra');
+        const btnCancelarObra = document.getElementById('btn-cancelar-obra');
+        const modalEditarObra = document.getElementById('modal-editar-obra');
+        const btnCloseEditarObra = document.getElementById('btn-close-editar-obra');
+        const btnCancelarEditarObra = document.getElementById('btn-cancelar-editar-obra');
+        const formEditarObra = document.getElementById('form-editar-obra');
+
+        btnNovaObra.addEventListener('click', () => modalObra.classList.add('active'));
+
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        btnCloseObra.addEventListener('click', () => fecharModal(modalObra));
+        btnCancelarObra.addEventListener('click', () => fecharModal(modalObra));
+        btnCloseEditarObra.addEventListener('click', () => fecharModal(modalEditarObra));
+        btnCancelarEditarObra.addEventListener('click', () => fecharModal(modalEditarObra));
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modalObra) fecharModal(modalObra);
+            if (event.target === modalEditarObra) fecharModal(modalEditarObra);
+        });
+
+        function abrirEditarObra(button) {
+            const id = button.getAttribute('data-id');
+            const nome = button.getAttribute('data-nome');
+            document.getElementById('nome-editar').value = nome || '';
+            formEditarObra.action = `/obra/editar/${id}`;
+            modalEditarObra.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

@@ -75,7 +75,8 @@
             margin-bottom: 5px;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             padding: 10px 12px;
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
@@ -207,7 +208,7 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar por nome, e-mail, cargo ou telefone..." data-table-search data-table-target="#usuarios-table" data-empty-message="Nenhum usuário encontrado.">
+                <input type="text" placeholder="Buscar por nome, e-mail, cargo, departamento ou obra..." data-table-search data-table-target="#usuarios-table" data-empty-message="Nenhum usuário encontrado.">
             </div>
         </section>
 
@@ -218,6 +219,8 @@
                         <th>Usuário</th>
                         <th>E-mail</th>
                         <th>Cargo</th>
+                        <th>Departamento</th>
+                        <th>Obra</th>
                         <th>Contato</th>
                         <th>Perfil</th>
                         <th>Status</th>
@@ -226,7 +229,7 @@
                 </thead>
                 <tbody>
                     {% for usuario in usuarios %}
-                    <tr data-searchable-row data-search-text="{{ usuario.username }} {{ usuario.email }} {{ usuario.cargo or '' }} {{ usuario.ramal or '' }} {{ usuario.numero_corporativo or '' }} {{ usuario.classe or '' }} {{ 'ativo' if usuario.active else 'inativo' }}">
+                    <tr data-searchable-row data-search-text="{{ usuario.username }} {{ usuario.email }} {{ usuario.cargo or '' }} {{ usuario.departamento.nome if usuario.departamento else '' }} {{ usuario.obra.nome if usuario.obra else '' }} {{ usuario.ramal or '' }} {{ usuario.numero_corporativo or '' }} {{ usuario.classe or '' }} {{ 'ativo' if usuario.active else 'inativo' }}">
                         <td>
                             <div class="user-cell">
                                 <strong>{{ usuario.username }}</strong>
@@ -239,6 +242,8 @@
                         </td>
                         <td>{{ usuario.email }}</td>
                         <td>{{ usuario.cargo or '-' }}</td>
+                        <td>{{ usuario.departamento.nome if usuario.departamento else '-' }}</td>
+                        <td>{{ usuario.obra.nome if usuario.obra else '-' }}</td>
                         <td>
                             {% if usuario.ramal or usuario.numero_corporativo %}
                                 {{ usuario.ramal or '-' }} / {{ usuario.numero_corporativo or '-' }}
@@ -268,6 +273,8 @@
                                 data-username="{{ usuario.username }}"
                                 data-email="{{ usuario.email }}"
                                 data-cargo="{{ usuario.cargo or '' }}"
+                                data-departamento-id="{{ usuario.departamento_id or '' }}"
+                                data-obra-id="{{ usuario.obra_id or '' }}"
                                 data-ramal="{{ usuario.ramal or '' }}"
                                 data-numero-corporativo="{{ usuario.numero_corporativo or '' }}"
                                 data-active="{{ 'true' if usuario.active else 'false' }}"
@@ -325,10 +332,33 @@
                         </div>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="departamento_id">Departamento</label>
+                            <select id="departamento_id" name="departamento_id">
+                                <option value="">Selecione</option>
+                                {% for departamento in departamentos %}
+                                <option value="{{ departamento.id }}">{{ departamento.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="obra_id">Obra</label>
+                            <select id="obra_id" name="obra_id">
+                                <option value="">Selecione</option>
+                                {% for obra in obras %}
+                                <option value="{{ obra.id }}">{{ obra.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
                     <label class="form-check">
                         <input type="checkbox" id="active" name="active" checked>
                         <span>Usuário ativo ao salvar</span>
                     </label>
+
+                    <div class="form-helper">Cadastre antes os departamentos e obras para disponibilizar essas opções no usuário.</div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn-secondary" id="btn-cancelar-usuario">Cancelar</button>
@@ -381,6 +411,27 @@
                         </div>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="departamento_id_editar">Departamento</label>
+                            <select id="departamento_id_editar" name="departamento_id">
+                                <option value="">Selecione</option>
+                                {% for departamento in departamentos %}
+                                <option value="{{ departamento.id }}">{{ departamento.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="obra_id_editar">Obra</label>
+                            <select id="obra_id_editar" name="obra_id">
+                                <option value="">Selecione</option>
+                                {% for obra in obras %}
+                                <option value="{{ obra.id }}">{{ obra.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
                     <label class="form-check">
                         <input type="checkbox" id="active_editar" name="active">
                         <span>Usuário ativo</span>
@@ -427,6 +478,8 @@
             document.getElementById('username_editar').value = button.getAttribute('data-username') || '';
             document.getElementById('email_editar').value = button.getAttribute('data-email') || '';
             document.getElementById('cargo_editar').value = button.getAttribute('data-cargo') || '';
+            document.getElementById('departamento_id_editar').value = button.getAttribute('data-departamento-id') || '';
+            document.getElementById('obra_id_editar').value = button.getAttribute('data-obra-id') || '';
             document.getElementById('ramal_editar').value = button.getAttribute('data-ramal') || '';
             document.getElementById('numero_corporativo_editar').value = button.getAttribute('data-numero-corporativo') || '';
             document.getElementById('active_editar').checked = button.getAttribute('data-active') === 'true';

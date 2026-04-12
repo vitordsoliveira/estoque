@@ -31,10 +31,17 @@
     color: var(--primary-color);
 }
 
+.main-nav {
+    flex: 1;
+    margin: 0 24px;
+}
+
 .main-nav ul {
     list-style: none;
     display: flex;
-    gap: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 18px;
 }
 
 .main-nav a {
@@ -177,6 +184,7 @@
 
     .main-nav {
         width: 100%;
+        margin: 0;
         order: 3;
     }
 
