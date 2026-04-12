@@ -1,14 +1,57 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import io
+import json
+import re
+
+import qrcode
+from flask import Blueprint, Response, abort, flash, jsonify, redirect, render_template, request, url_for
 from app.models import db, Sku, Marca, Tipo, Familia, Especificacao, Produto, Patrimonio
 from app.number_utils import parse_scaled_input
-from flask import jsonify
-import re
+from qrcode.image.svg import SvgPathImage
 
 sku = Blueprint(
     'sku',
     __name__,
     url_prefix='/sku' 
 )
+
+
+def serializar_payload_qrcode_sku(sku_obj):
+    return json.dumps(
+        {
+            'type': 'sku',
+            'id': sku_obj.id,
+            'codigo': sku_obj.codigo,
+            'nome': sku_obj.nome,
+            'marca': sku_obj.marca.nome if sku_obj.marca else None,
+            'familia': sku_obj.familia.nome if sku_obj.familia else None,
+            'tipo': sku_obj.tipo.nome if sku_obj.tipo else None,
+        },
+        ensure_ascii=False,
+        separators=(',', ':')
+    )
+
+
+def gerar_svg_qrcode_sku(sku_obj):
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(serializar_payload_qrcode_sku(sku_obj))
+    qr.make(fit=True)
+
+    imagem = qr.make_image(image_factory=SvgPathImage)
+    buffer = io.BytesIO()
+    imagem.save(buffer)
+    return buffer.getvalue()
+
+
+def obter_sku_ou_404(id):
+    sku_obj = db.session.get(Sku, id)
+    if not sku_obj:
+        abort(404)
+    return sku_obj
 
 
 def gerar_prefixo_familia(familia_id):
@@ -212,3 +255,19 @@ def get_sku(id):
         'valorPeso': sku_obj.valorPeso,
         'especificacao_nome': sku_obj.especificacao.nome if sku_obj.especificacao_id and sku_obj.especificacao else ''
     })
+
+
+@sku.route('/qrcode/<int:id>/svg')
+def qrcode_sku_svg(id):
+    sku_obj = obter_sku_ou_404(id)
+    svg_bytes = gerar_svg_qrcode_sku(sku_obj)
+    return Response(svg_bytes, mimetype='image/svg+xml')
+
+
+@sku.route('/qrcode/<int:id>/download')
+def baixar_qrcode_sku(id):
+    sku_obj = obter_sku_ou_404(id)
+    svg_bytes = gerar_svg_qrcode_sku(sku_obj)
+    response = Response(svg_bytes, mimetype='image/svg+xml')
+    response.headers['Content-Disposition'] = f'attachment; filename=sku-{sku_obj.codigo}.svg'
+    return response

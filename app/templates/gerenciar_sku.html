@@ -101,6 +101,82 @@
             padding-top: 15px;
             border-top: 1px solid var(--border-color);
         }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+
+        .qr-preview-shell {
+            display: grid;
+            gap: 18px;
+        }
+
+        .qr-preview-card {
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            border-radius: 20px;
+            background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+            border: 1px solid #dbe6f2;
+        }
+
+        .qr-preview-image {
+            width: min(100%, 280px);
+            background: var(--white);
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .qr-preview-meta {
+            display: grid;
+            gap: 10px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+
+        .qr-preview-meta span {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 700;
+        }
+
+        .qr-preview-meta strong {
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        .qr-preview-meta p {
+            color: #52637a;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .qr-preview-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-end;
+        }
     </style>
 
 </head>
@@ -157,6 +233,7 @@
                         </td>
                         <td>{{ '%.3f'|format(sku.peso) if sku.peso else '0.000' }} kg</td>
                         <td>
+                            <button class="btn-icon" title="Gerar QR Code" data-id="{{ sku.id }}" data-codigo="{{ sku.codigo }}" data-nome="{{ sku.nome }}" onclick="abrirQrSku(this)"><i class="fas fa-qrcode"></i></button>
                             <button class="btn-icon" title="Editar" data-id="{{ sku.id }}" onclick="abrirEditarSku(this)"><i class="fas fa-edit"></i></button>
                             <form action="{{ url_for('sku.deletar_sku', id=sku.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este SKU?');">
                                 <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
@@ -324,6 +401,49 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-qrcode-sku">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>QR Code do SKU</h2>
+                <button class="btn-close" id="btn-close-qrcode-sku"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="qr-preview-shell">
+                    <div class="qr-preview-card">
+                        <img id="sku-qrcode-preview" class="qr-preview-image" src="" alt="QR Code do SKU">
+                    </div>
+
+                    <div class="qr-preview-meta">
+                        <div>
+                            <span>Código</span>
+                            <strong id="sku-qrcode-codigo">-</strong>
+                        </div>
+                        <div>
+                            <span>Modelo</span>
+                            <p id="sku-qrcode-nome">-</p>
+                        </div>
+                        <div>
+                            <span>Uso</span>
+                            <p>Este QR Code codifica o SKU em um payload estruturado para reaproveitamento em futuras leituras e rotinas de balanço.</p>
+                        </div>
+                    </div>
+
+                    <div class="qr-preview-actions">
+                        <a id="sku-qrcode-open" class="btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-up-right-from-square"></i>
+                            Abrir SVG
+                        </a>
+                        <a id="sku-qrcode-download" class="btn-primary" href="#">
+                            <i class="fas fa-download"></i>
+                            Baixar QR Code
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
     <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
@@ -338,6 +458,13 @@
         const btnCancelarEditarSku = document.getElementById('btn-cancelar-editar-sku');
         const formEditarSku = document.getElementById('form-editar-sku');
         const codigoInput = document.getElementById('codigo');
+        const modalQrSku = document.getElementById('modal-qrcode-sku');
+        const btnCloseQrSku = document.getElementById('btn-close-qrcode-sku');
+        const qrPreview = document.getElementById('sku-qrcode-preview');
+        const qrCodigo = document.getElementById('sku-qrcode-codigo');
+        const qrNome = document.getElementById('sku-qrcode-nome');
+        const qrOpenLink = document.getElementById('sku-qrcode-open');
+        const qrDownloadLink = document.getElementById('sku-qrcode-download');
 
         btnNovoSku.addEventListener('click', () => modalSku.classList.add('active'));
 
@@ -348,11 +475,30 @@
         
         btnCloseEditarSku.addEventListener('click', () => fecharModal(modalEditarSku));
         btnCancelarEditarSku.addEventListener('click', () => fecharModal(modalEditarSku));
+        btnCloseQrSku.addEventListener('click', () => fecharModal(modalQrSku));
 
         window.addEventListener('click', (e) => {
             if (e.target === modalSku) fecharModal(modalSku);
             if (e.target === modalEditarSku) fecharModal(modalEditarSku);
+            if (e.target === modalQrSku) fecharModal(modalQrSku);
         });
+
+        function abrirQrSku(button) {
+            const id = button.getAttribute('data-id');
+            const codigo = button.getAttribute('data-codigo') || '-';
+            const nome = button.getAttribute('data-nome') || '-';
+            const svgUrl = `/sku/qrcode/${id}/svg`;
+            const downloadUrl = `/sku/qrcode/${id}/download`;
+
+            qrPreview.src = svgUrl;
+            qrPreview.alt = `QR Code do SKU ${codigo}`;
+            qrCodigo.textContent = codigo;
+            qrNome.textContent = nome;
+            qrOpenLink.href = svgUrl;
+            qrDownloadLink.href = downloadUrl;
+
+            modalQrSku.classList.add('active');
+        }
 
         function abrirEditarSku(button) {
             const id = button.getAttribute('data-id');
