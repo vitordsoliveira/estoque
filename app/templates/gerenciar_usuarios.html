@@ -7,7 +7,10 @@
     <title>Gerenciar Usuários - Estoque</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <style>
         .modal-overlay {
             position: fixed;
@@ -82,6 +85,28 @@
             border-radius: var(--radius);
             outline: none;
             font-size: 0.95rem;
+        }
+
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            min-height: 42px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 22px;
+            padding-left: 12px;
+            padding-right: 30px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
         }
 
         .form-check {
@@ -180,6 +205,60 @@
             line-height: 1.5;
         }
 
+        .hierarchy-cell {
+            display: grid;
+            gap: 6px;
+        }
+
+        .hierarchy-cell small {
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .cargo-config-card {
+            margin-top: 10px;
+            padding: 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            background: #f8fafc;
+        }
+
+        .cargo-config-card strong {
+            display: block;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .cargo-config-card span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .cargo-config-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .cargo-config-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+
+        .cargo-config-tag.enabled {
+            background: #dcfce7;
+            color: #166534;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 flex-direction: column;
@@ -200,7 +279,7 @@
         <div class="page-header">
             <div>
                 <h2>Usuários</h2>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Cadastre usuários operacionais que herdarão o login e poderão emitir JWT no fluxo não-admin.</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Escolha o cargo hierárquico no Select2 e o usuário já herda automaticamente as permissões daquele perfil.</p>
             </div>
             <button class="btn-primary" id="btn-novo-usuario"><i class="fas fa-user-plus"></i> Novo Usuário</button>
         </div>
@@ -208,7 +287,7 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar por nome, e-mail, cargo, departamento ou obra..." data-table-search data-table-target="#usuarios-table" data-empty-message="Nenhum usuário encontrado.">
+                <input type="text" placeholder="Buscar por nome, e-mail, cargo, gestor, departamento ou obra..." data-table-search data-table-target="#usuarios-table" data-empty-message="Nenhum usuário encontrado.">
             </div>
         </section>
 
@@ -219,17 +298,18 @@
                         <th>Usuário</th>
                         <th>E-mail</th>
                         <th>Cargo</th>
+                        <th>Gestor</th>
                         <th>Departamento</th>
                         <th>Obra</th>
                         <th>Contato</th>
-                        <th>Perfil</th>
+                        <th>Hierarquia</th>
                         <th>Status</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for usuario in usuarios %}
-                    <tr data-searchable-row data-search-text="{{ usuario.username }} {{ usuario.email }} {{ usuario.cargo or '' }} {{ usuario.departamento.nome if usuario.departamento else '' }} {{ usuario.obra.nome if usuario.obra else '' }} {{ usuario.ramal or '' }} {{ usuario.numero_corporativo or '' }} {{ usuario.classe or '' }} {{ 'ativo' if usuario.active else 'inativo' }}">
+                    <tr data-searchable-row data-search-text="{{ usuario.username }} {{ usuario.email }} {{ usuario.cargo or '' }} {{ usuario.nome_papel or '' }} {{ usuario.gestor.username if usuario.gestor else '' }} {{ usuario.departamento.nome if usuario.departamento else '' }} {{ usuario.obra.nome if usuario.obra else '' }} {{ usuario.ramal or '' }} {{ usuario.numero_corporativo or '' }} {{ usuario.classe or '' }} {{ 'ativo' if usuario.active else 'inativo' }}">
                         <td>
                             <div class="user-cell">
                                 <strong>{{ usuario.username }}</strong>
@@ -242,6 +322,7 @@
                         </td>
                         <td>{{ usuario.email }}</td>
                         <td>{{ usuario.cargo or '-' }}</td>
+                        <td>{{ usuario.gestor.username if usuario.gestor else '-' }}</td>
                         <td>{{ usuario.departamento.nome if usuario.departamento else '-' }}</td>
                         <td>{{ usuario.obra.nome if usuario.obra else '-' }}</td>
                         <td>
@@ -252,9 +333,26 @@
                             {% endif %}
                         </td>
                         <td>
-                            <span class="user-role-badge {{ 'user-role-admin' if usuario.is_admin else 'user-role-user' }}">
-                                {{ 'Admin' if usuario.is_admin else 'Usuário' }}
-                            </span>
+                            <div class="hierarchy-cell">
+                                <span class="user-role-badge {{ 'user-role-admin' if usuario.is_admin else 'user-role-user' }}">
+                                    {% if usuario.is_admin %}
+                                    Admin
+                                    {% elif usuario.perfil_funcional %}
+                                    Nível {{ usuario.perfil_funcional.nivel_hierarquico }}
+                                    {% else %}
+                                    Sem cargo
+                                    {% endif %}
+                                </span>
+                                <small>
+                                    {% if usuario.is_admin %}
+                                    Controle total do sistema.
+                                    {% elif usuario.perfil_funcional %}
+                                    {{ 'Delega' if usuario.can_assign_balanco else 'Não delega' }} · {{ 'Executa' if usuario.can_execute_balanco else 'Não executa' }} · {{ 'Valida' if usuario.can_validate_balanco else 'Não valida' }}
+                                    {% else %}
+                                    Nenhuma configuração hierárquica vinculada.
+                                    {% endif %}
+                                </small>
+                            </div>
                         </td>
                         <td>
                             <span class="status-pill {{ 'status-pill-active' if usuario.active else 'status-pill-inactive' }}">
@@ -272,7 +370,8 @@
                                 data-id="{{ usuario.id }}"
                                 data-username="{{ usuario.username }}"
                                 data-email="{{ usuario.email }}"
-                                data-cargo="{{ usuario.cargo or '' }}"
+                                data-perfil-funcional-id="{{ usuario.perfil_funcional_id or '' }}"
+                                data-gestor-id="{{ usuario.gestor_id or '' }}"
                                 data-departamento-id="{{ usuario.departamento_id or '' }}"
                                 data-obra-id="{{ usuario.obra_id or '' }}"
                                 data-ramal="{{ usuario.ramal or '' }}"
@@ -316,8 +415,8 @@
                             <input type="password" id="password" name="password" placeholder="Mínimo de 8 caracteres" required>
                         </div>
                         <div class="form-group">
-                            <label for="cargo">Cargo</label>
-                            <input type="text" id="cargo" name="cargo" placeholder="Ex: Almoxarife">
+                            <label for="cargo_preview">Cargo</label>
+                            <input type="text" id="cargo_preview" placeholder="Preenchido automaticamente pelo cargo hierárquico" readonly>
                         </div>
                     </div>
 
@@ -329,6 +428,32 @@
                         <div class="form-group">
                             <label for="numero_corporativo">Número corporativo</label>
                             <input type="text" id="numero_corporativo" name="numero_corporativo" placeholder="Ex: (11) 99999-0000">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="perfil_funcional_id">Cargo hierárquico</label>
+                            <select id="perfil_funcional_id" name="perfil_funcional_id">
+                                <option value="">Selecione</option>
+                                {% for perfil in perfis %}
+                                <option value="{{ perfil.id }}" data-nome="{{ perfil.nome }}" data-nivel="{{ perfil.nivel_hierarquico }}" data-pode-attribuir-balanco="{{ 'true' if perfil.pode_atribuir_balanco else 'false' }}" data-pode-executar-balanco="{{ 'true' if perfil.pode_executar_balanco else 'false' }}" data-pode-validar-balanco="{{ 'true' if perfil.pode_validar_balanco else 'false' }}">{{ perfil.nome }} · nível {{ perfil.nivel_hierarquico }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="cargo-config-card" id="cargo-config-card">
+                                <strong>Nenhum cargo selecionado</strong>
+                                <span>Escolha um cargo no Select2 para herdar automaticamente as regras de hierarquia e operação.</span>
+                                <div class="cargo-config-tags" id="cargo-config-tags"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="gestor_id">Gestor imediato</label>
+                            <select id="gestor_id" name="gestor_id">
+                                <option value="">Selecione</option>
+                                {% for gestor in gestores %}
+                                <option value="{{ gestor.id }}">{{ gestor.username }}{% if gestor.perfil_funcional %} · {{ gestor.perfil_funcional.nome }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
@@ -359,6 +484,7 @@
                     </label>
 
                     <div class="form-helper">Cadastre antes os departamentos e obras para disponibilizar essas opções no usuário.</div>
+                    <div class="form-helper">O nome do cargo é o próprio nome do perfil hierárquico escolhido e as permissões são carregadas automaticamente.</div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn-secondary" id="btn-cancelar-usuario">Cancelar</button>
@@ -395,8 +521,8 @@
                             <input type="password" id="password_editar" name="password" placeholder="Deixe em branco para manter a senha atual">
                         </div>
                         <div class="form-group">
-                            <label for="cargo_editar">Cargo</label>
-                            <input type="text" id="cargo_editar" name="cargo">
+                            <label for="cargo_preview_editar">Cargo</label>
+                            <input type="text" id="cargo_preview_editar" placeholder="Preenchido automaticamente pelo cargo hierárquico" readonly>
                         </div>
                     </div>
 
@@ -408,6 +534,32 @@
                         <div class="form-group">
                             <label for="numero_corporativo_editar">Número corporativo</label>
                             <input type="text" id="numero_corporativo_editar" name="numero_corporativo">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="perfil_funcional_id_editar">Cargo hierárquico</label>
+                            <select id="perfil_funcional_id_editar" name="perfil_funcional_id">
+                                <option value="">Selecione</option>
+                                {% for perfil in perfis %}
+                                <option value="{{ perfil.id }}" data-nome="{{ perfil.nome }}" data-nivel="{{ perfil.nivel_hierarquico }}" data-pode-attribuir-balanco="{{ 'true' if perfil.pode_atribuir_balanco else 'false' }}" data-pode-executar-balanco="{{ 'true' if perfil.pode_executar_balanco else 'false' }}" data-pode-validar-balanco="{{ 'true' if perfil.pode_validar_balanco else 'false' }}">{{ perfil.nome }} · nível {{ perfil.nivel_hierarquico }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="cargo-config-card" id="cargo-config-card-editar">
+                                <strong>Nenhum cargo selecionado</strong>
+                                <span>Escolha um cargo no Select2 para herdar automaticamente as regras de hierarquia e operação.</span>
+                                <div class="cargo-config-tags" id="cargo-config-tags-editar"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="gestor_id_editar">Gestor imediato</label>
+                            <select id="gestor_id_editar" name="gestor_id">
+                                <option value="">Selecione</option>
+                                {% for gestor in gestores %}
+                                <option value="{{ gestor.id }}">{{ gestor.username }}{% if gestor.perfil_funcional %} · {{ gestor.perfil_funcional.nome }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
@@ -458,6 +610,12 @@
         const btnCloseEditarUsuario = document.getElementById('btn-close-editar-usuario');
         const btnCancelarEditarUsuario = document.getElementById('btn-cancelar-editar-usuario');
         const formEditarUsuario = document.getElementById('form-editar-usuario');
+        const cargoPreview = document.getElementById('cargo_preview');
+        const cargoPreviewEditar = document.getElementById('cargo_preview_editar');
+        const cargoConfigCard = document.getElementById('cargo-config-card');
+        const cargoConfigTags = document.getElementById('cargo-config-tags');
+        const cargoConfigCardEditar = document.getElementById('cargo-config-card-editar');
+        const cargoConfigTagsEditar = document.getElementById('cargo-config-tags-editar');
 
         btnNovoUsuario.addEventListener('click', () => modalUsuario.classList.add('active'));
 
@@ -473,21 +631,80 @@
             if (event.target === modalEditarUsuario) fecharModal(modalEditarUsuario);
         });
 
+        function renderCargoConfig(selectElement, previewInput, cardElement, tagsElement) {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const cargoNome = selectedOption?.dataset?.nome || '';
+            const nivel = selectedOption?.dataset?.nivel || '';
+            const podeAtribuir = selectedOption?.dataset?.podeAtribuirBalanco === 'true';
+            const podeExecutar = selectedOption?.dataset?.podeExecutarBalanco === 'true';
+            const podeValidar = selectedOption?.dataset?.podeValidarBalanco === 'true';
+
+            previewInput.value = cargoNome;
+
+            if (!cargoNome) {
+                cardElement.querySelector('strong').textContent = 'Nenhum cargo selecionado';
+                cardElement.querySelector('span').textContent = 'Escolha um cargo no Select2 para herdar automaticamente as regras de hierarquia e operação.';
+                tagsElement.innerHTML = '';
+                return;
+            }
+
+            cardElement.querySelector('strong').textContent = cargoNome;
+            cardElement.querySelector('span').textContent = `Nível hierárquico ${nivel}. O usuário assume automaticamente estas permissões operacionais.`;
+            tagsElement.innerHTML = `
+                <span class="cargo-config-tag ${podeAtribuir ? 'enabled' : ''}">${podeAtribuir ? 'Delega balanços' : 'Não delega'}</span>
+                <span class="cargo-config-tag ${podeExecutar ? 'enabled' : ''}">${podeExecutar ? 'Executa balanços' : 'Não executa'}</span>
+                <span class="cargo-config-tag ${podeValidar ? 'enabled' : ''}">${podeValidar ? 'Valida entregas' : 'Não valida'}</span>
+            `;
+        }
+
         function abrirEditarUsuario(button) {
             const id = button.getAttribute('data-id');
             document.getElementById('username_editar').value = button.getAttribute('data-username') || '';
             document.getElementById('email_editar').value = button.getAttribute('data-email') || '';
-            document.getElementById('cargo_editar').value = button.getAttribute('data-cargo') || '';
-            document.getElementById('departamento_id_editar').value = button.getAttribute('data-departamento-id') || '';
-            document.getElementById('obra_id_editar').value = button.getAttribute('data-obra-id') || '';
             document.getElementById('ramal_editar').value = button.getAttribute('data-ramal') || '';
             document.getElementById('numero_corporativo_editar').value = button.getAttribute('data-numero-corporativo') || '';
             document.getElementById('active_editar').checked = button.getAttribute('data-active') === 'true';
             document.getElementById('password_editar').value = '';
 
+            $('#perfil_funcional_id_editar').val(button.getAttribute('data-perfil-funcional-id') || '').trigger('change');
+            $('#gestor_id_editar').val(button.getAttribute('data-gestor-id') || '').trigger('change');
+            $('#departamento_id_editar').val(button.getAttribute('data-departamento-id') || '').trigger('change');
+            $('#obra_id_editar').val(button.getAttribute('data-obra-id') || '').trigger('change');
+
             formEditarUsuario.action = `/usuarios/editar/${id}`;
             modalEditarUsuario.classList.add('active');
         }
+
+        $(document).ready(function () {
+            const selectConfig = (selector, dropdownParent, placeholder) => {
+                $(selector).select2({
+                    dropdownParent: $(dropdownParent),
+                    placeholder: placeholder,
+                    width: '100%'
+                });
+            };
+
+            selectConfig('#perfil_funcional_id', '#modal-usuario', 'Selecione um cargo hierárquico');
+            selectConfig('#gestor_id', '#modal-usuario', 'Selecione o gestor');
+            selectConfig('#departamento_id', '#modal-usuario', 'Selecione o departamento');
+            selectConfig('#obra_id', '#modal-usuario', 'Selecione a obra');
+
+            selectConfig('#perfil_funcional_id_editar', '#modal-editar-usuario', 'Selecione um cargo hierárquico');
+            selectConfig('#gestor_id_editar', '#modal-editar-usuario', 'Selecione o gestor');
+            selectConfig('#departamento_id_editar', '#modal-editar-usuario', 'Selecione o departamento');
+            selectConfig('#obra_id_editar', '#modal-editar-usuario', 'Selecione a obra');
+
+            $('#perfil_funcional_id').on('change', function () {
+                renderCargoConfig(this, cargoPreview, cargoConfigCard, cargoConfigTags);
+            });
+
+            $('#perfil_funcional_id_editar').on('change', function () {
+                renderCargoConfig(this, cargoPreviewEditar, cargoConfigCardEditar, cargoConfigTagsEditar);
+            });
+
+            renderCargoConfig(document.getElementById('perfil_funcional_id'), cargoPreview, cargoConfigCard, cargoConfigTags);
+            renderCargoConfig(document.getElementById('perfil_funcional_id_editar'), cargoPreviewEditar, cargoConfigCardEditar, cargoConfigTagsEditar);
+        });
     </script>
 </body>
 

@@ -28,6 +28,7 @@ def create_app():
         from app.routes.auth import auth
         from app.routes.balanco import balanco
         from app.routes.departamento import departamento
+        from app.routes.hierarquia import hierarquia
         from app.routes.obra import obra
         from app.routes.usuarios import usuarios
         from app.routes.marca import marca
@@ -40,6 +41,7 @@ def create_app():
         app.register_blueprint(auth)
         app.register_blueprint(balanco)
         app.register_blueprint(departamento)
+        app.register_blueprint(hierarquia)
         app.register_blueprint(obra)
         app.register_blueprint(usuarios)
         app.register_blueprint(main)

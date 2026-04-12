@@ -2,7 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from sqlalchemy import func
 
 from app.auth import admin_required
-from app.models import Departamento, Obra, User, db
+from app.models import Departamento, Obra, PerfilFuncional, User, db
 
 usuarios = Blueprint('usuarios', __name__, url_prefix='/usuarios')
 
@@ -26,10 +26,34 @@ def normalizar_campo(value):
     return value or None
 
 
+def resolver_cargo_por_perfil(perfil_funcional):
+    if not perfil_funcional:
+        return None
+    return perfil_funcional.nome
+
+
+def validar_gestor_para_cargo(gestor, perfil_funcional):
+    if not gestor:
+        return None
+
+    if gestor.is_admin:
+        return None
+
+    if not gestor.perfil_funcional:
+        return 'O gestor selecionado precisa ter um cargo hierárquico configurado.'
+
+    if perfil_funcional and gestor.perfil_funcional.nivel_hierarquico <= perfil_funcional.nivel_hierarquico:
+        return 'O gestor selecionado precisa ter nível hierárquico superior ao cargo escolhido.'
+
+    return None
+
+
 def carregar_referencias_usuario():
     departamentos = Departamento.query.order_by(Departamento.nome.asc()).all()
     obras = Obra.query.order_by(Obra.nome.asc()).all()
-    return departamentos, obras
+    perfis = PerfilFuncional.query.order_by(PerfilFuncional.nivel_hierarquico.desc(), PerfilFuncional.nome.asc()).all()
+    gestores = User.query.filter(User.active.is_(True)).order_by(User.username.asc()).all()
+    return departamentos, obras, perfis, gestores
 
 
 def resolver_relacao(model_class, entity_id):
@@ -42,12 +66,14 @@ def resolver_relacao(model_class, entity_id):
 @admin_required
 def gerenciar_usuarios():
     usuarios_cadastrados = User.query.order_by(User.username.asc()).all()
-    departamentos, obras = carregar_referencias_usuario()
+    departamentos, obras, perfis, gestores = carregar_referencias_usuario()
     return render_template(
         'gerenciar_usuarios.html',
         usuarios=usuarios_cadastrados,
         departamentos=departamentos,
         obras=obras,
+        perfis=perfis,
+        gestores=gestores,
     )
 
 
@@ -57,12 +83,22 @@ def cadastrar_usuario():
     username = (request.form.get('username') or '').strip()
     email = (request.form.get('email') or '').strip().lower()
     password = request.form.get('password') or ''
-    cargo = normalizar_campo(request.form.get('cargo'))
     ramal = normalizar_campo(request.form.get('ramal'))
     numero_corporativo = normalizar_campo(request.form.get('numero_corporativo'))
+    perfil_funcional_id = request.form.get('perfil_funcional_id', type=int)
     departamento_id = request.form.get('departamento_id', type=int)
     obra_id = request.form.get('obra_id', type=int)
+    gestor_id = request.form.get('gestor_id', type=int)
     active = request.form.get('active') == 'on'
+
+    perfil_funcional = resolver_relacao(PerfilFuncional, perfil_funcional_id)
+    if perfil_funcional_id and not perfil_funcional:
+        flash('Perfil funcional inválido.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    if not perfil_funcional:
+        flash('Selecione um cargo hierárquico para o usuário.', 'warning')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
 
     departamento = resolver_relacao(Departamento, departamento_id)
     if departamento_id and not departamento:
@@ -72,6 +108,16 @@ def cadastrar_usuario():
     obra = resolver_relacao(Obra, obra_id)
     if obra_id and not obra:
         flash('Obra inválida.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    gestor = resolver_relacao(User, gestor_id)
+    if gestor_id and (not gestor or not gestor.active):
+        flash('Gestor inválido.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    erro_hierarquia = validar_gestor_para_cargo(gestor, perfil_funcional)
+    if erro_hierarquia:
+        flash(erro_hierarquia, 'warning')
         return redirect(url_for('usuarios.gerenciar_usuarios'))
 
     if not username or not email or not password:
@@ -95,11 +141,13 @@ def cadastrar_usuario():
             username=username,
             email=email,
             classe='user',
-            cargo=cargo,
+            cargo=resolver_cargo_por_perfil(perfil_funcional),
+            perfil_funcional_id=perfil_funcional.id if perfil_funcional else None,
             ramal=ramal,
             numero_corporativo=numero_corporativo,
             departamento_id=departamento.id if departamento else None,
             obra_id=obra.id if obra else None,
+            gestor_id=gestor.id if gestor else None,
             active=active,
             first_login_completed=True
         )
@@ -130,12 +178,22 @@ def editar_usuario(id):
     username = (request.form.get('username') or '').strip()
     email = (request.form.get('email') or '').strip().lower()
     password = request.form.get('password') or ''
-    cargo = normalizar_campo(request.form.get('cargo'))
     ramal = normalizar_campo(request.form.get('ramal'))
     numero_corporativo = normalizar_campo(request.form.get('numero_corporativo'))
+    perfil_funcional_id = request.form.get('perfil_funcional_id', type=int)
     departamento_id = request.form.get('departamento_id', type=int)
     obra_id = request.form.get('obra_id', type=int)
+    gestor_id = request.form.get('gestor_id', type=int)
     active = request.form.get('active') == 'on'
+
+    perfil_funcional = resolver_relacao(PerfilFuncional, perfil_funcional_id)
+    if perfil_funcional_id and not perfil_funcional:
+        flash('Perfil funcional inválido.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    if not perfil_funcional:
+        flash('Selecione um cargo hierárquico para o usuário.', 'warning')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
 
     departamento = resolver_relacao(Departamento, departamento_id)
     if departamento_id and not departamento:
@@ -145,6 +203,20 @@ def editar_usuario(id):
     obra = resolver_relacao(Obra, obra_id)
     if obra_id and not obra:
         flash('Obra inválida.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    if gestor_id and gestor_id == usuario.id:
+        flash('O usuário não pode ser gestor dele mesmo.', 'warning')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    gestor = resolver_relacao(User, gestor_id)
+    if gestor_id and (not gestor or not gestor.active):
+        flash('Gestor inválido.', 'danger')
+        return redirect(url_for('usuarios.gerenciar_usuarios'))
+
+    erro_hierarquia = validar_gestor_para_cargo(gestor, perfil_funcional)
+    if erro_hierarquia:
+        flash(erro_hierarquia, 'warning')
         return redirect(url_for('usuarios.gerenciar_usuarios'))
 
     if not username or not email:
@@ -166,11 +238,13 @@ def editar_usuario(id):
     try:
         usuario.username = username
         usuario.email = email
-        usuario.cargo = cargo
+        usuario.cargo = resolver_cargo_por_perfil(perfil_funcional)
+        usuario.perfil_funcional_id = perfil_funcional.id if perfil_funcional else None
         usuario.ramal = ramal
         usuario.numero_corporativo = numero_corporativo
         usuario.departamento_id = departamento.id if departamento else None
         usuario.obra_id = obra.id if obra else None
+        usuario.gestor_id = gestor.id if gestor else None
         usuario.active = active
         usuario.first_login_completed = True
 

@@ -15,6 +15,7 @@
             gap: 24px;
         }
 
+        .task-board,
         .scan-shell,
         .balanco-grid {
             display: grid;
@@ -29,6 +30,93 @@
             border: 1px solid rgba(148, 163, 184, 0.18);
             box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
             padding: 24px;
+        }
+
+        .task-card {
+            display: grid;
+            gap: 16px;
+            padding: 18px;
+            border-radius: 18px;
+            border: 1px solid #dbe6f2;
+            background: #fbfdff;
+        }
+
+        .task-card + .task-card {
+            margin-top: 14px;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .task-header h4 {
+            margin: 8px 0 4px;
+            color: var(--text-main);
+        }
+
+        .task-header p {
+            margin: 0;
+        }
+
+        .task-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .task-status.pending {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .task-status.done {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .task-status.cancelled {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .task-meta-grid,
+        .task-form-grid,
+        .entry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .task-meta-grid div,
+        .sku-meta-card {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+
+        .task-meta-grid span,
+        .sku-meta-card span,
+        .qr-preview-meta span {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 700;
+        }
+
+        .task-meta-grid strong,
+        .sku-meta-card strong {
+            display: block;
+            margin-top: 6px;
+            color: var(--text-main);
         }
 
         .scan-card.highlight-card {
@@ -59,14 +147,18 @@
         }
 
         .scan-form,
-        .quick-entry-form {
+        .quick-entry-form,
+        .task-form,
+        .delegate-form {
             display: grid;
             gap: 16px;
             margin-top: 18px;
         }
 
         .scan-form label,
-        .quick-entry-form label {
+        .quick-entry-form label,
+        .task-form label,
+        .delegate-form label {
             display: block;
             font-size: 0.85rem;
             font-weight: 700;
@@ -75,7 +167,14 @@
         }
 
         .scan-form textarea,
-        .quick-entry-form input {
+        .quick-entry-form input,
+        .quick-entry-form select,
+        .task-form input,
+        .task-form select,
+        .task-form textarea,
+        .delegate-form input,
+        .delegate-form select,
+        .delegate-form textarea {
             width: 100%;
             border: 1px solid #d8e1eb;
             border-radius: 16px;
@@ -93,18 +192,51 @@
             resize: vertical;
         }
 
+        .task-form textarea,
+        .delegate-form textarea {
+            min-height: 96px;
+            resize: vertical;
+        }
+
         .scan-form textarea:focus,
-        .quick-entry-form input:focus {
+        .quick-entry-form input:focus,
+        .quick-entry-form select:focus,
+        .task-form input:focus,
+        .task-form select:focus,
+        .task-form textarea:focus,
+        .delegate-form input:focus,
+        .delegate-form select:focus,
+        .delegate-form textarea:focus {
             border-color: #0f766e;
             box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
         }
 
         .scan-actions,
         .panel-actions,
-        .entry-actions {
+        .entry-actions,
+        .task-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
         }
 
         .sku-identity {
@@ -174,12 +306,6 @@
             color: #64748b;
         }
 
-        .entry-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 14px;
-        }
-
         .empty-panel {
             display: grid;
             place-items: center;
@@ -202,6 +328,29 @@
             color: #64748b;
         }
 
+        .helper-banner {
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid #dbe6f2;
+            background: #f8fafc;
+            color: #52637a;
+            line-height: 1.6;
+        }
+
+        .mini-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: #0f766e;
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
         @media (max-width: 640px) {
             .scan-card,
             .balanco-panel {
@@ -222,7 +371,7 @@
         <div class="page-header">
             <div>
                 <h2>Sistema de Balanço por QR Code</h2>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Leia o QR do SKU, identifique os produtos relacionados e atualize o estoque sem sair da conferência.</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Leia o QR do SKU, delegue a atividade para o operador correto e acompanhe o que foi esperado, executado e baixado no estoque.</p>
             </div>
             <div class="panel-actions">
                 {% if sku %}
@@ -238,11 +387,266 @@
             </div>
         </div>
 
+        <section class="kpi-section">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Minhas Pendências</h3>
+                    <p>{{ total_tarefas_pendentes }}</p>
+                </div>
+                <div class="kpi-icon danger-bg"><i class="fas fa-list-check"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Delegadas em Aberto</h3>
+                    <p>{{ total_tarefas_delegadas }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-share-nodes"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Meu Papel</h3>
+                    <p style="font-size: 1.1rem;">{{ current_user.nome_papel if current_user else 'Usuário' }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-id-badge"></i></div>
+            </div>
+        </section>
+
+        <section class="task-board">
+            <article class="balanco-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Minha fila operacional</h3>
+                        <p class="helper-text">Estas são as ordens do dia atribuídas diretamente para você. Ao concluir, o sistema registra o resultado e, se for endereçamento, move o saldo recebido para a prateleira.</p>
+                    </div>
+                    <span class="mini-count">{{ total_tarefas_pendentes }}</span>
+                </div>
+
+                {% if minhas_tarefas %}
+                    {% for tarefa in minhas_tarefas %}
+                    <article class="task-card">
+                        <div class="task-header">
+                            <div>
+                                <span class="task-status {{ 'pending' if tarefa.status == 'pendente' else 'done' if tarefa.status == 'concluido' else 'cancelled' }}">{{ tarefa.status_label }}</span>
+                                <h4>{{ tarefa.titulo }}</h4>
+                                <p>{{ tarefa.descricao or 'Sem descrição adicional.' }}</p>
+                            </div>
+                            <a class="btn-secondary" href="{{ url_for('balanco.gerenciar_balanco', sku_id=tarefa.sku_id) }}">
+                                <i class="fas fa-arrow-up-right-from-square"></i>
+                                Abrir SKU
+                            </a>
+                        </div>
+
+                        <div class="task-meta-grid">
+                            <div><span>SKU</span><strong>{{ tarefa.sku.codigo }} · {{ tarefa.sku.nome }}</strong></div>
+                            <div><span>Enviado por</span><strong>{{ tarefa.criado_por.username }}</strong></div>
+                            <div><span>Operação</span><strong>{{ tarefa.tipo_operacao_label }}</strong></div>
+                            <div><span>Esperado</span><strong>{{ ('%.3f'|format(tarefa.quantidade_esperada)).rstrip('0').rstrip('.') }}</strong></div>
+                            <div><span>Contexto</span><strong>{{ tarefa.contexto or 'Rotina geral' }}</strong></div>
+                            <div><span>Destino</span><strong>{{ tarefa.destino_formatado }}</strong></div>
+                        </div>
+
+                        {% if tarefa.is_open %}
+                        <form action="{{ url_for('balanco.concluir_tarefa_balanco', id=tarefa.id) }}" method="POST" class="task-form">
+                            <input type="hidden" name="next" value="{{ url_for('balanco.gerenciar_balanco', sku_id=tarefa.sku_id) }}">
+                            <div class="task-form-grid">
+                                <div>
+                                    <label for="quantidade_realizada_{{ tarefa.id }}">Quantidade realizada</label>
+                                    <input type="text" inputmode="decimal" id="quantidade_realizada_{{ tarefa.id }}" name="quantidade_realizada" value="{{ ('%.3f'|format(tarefa.quantidade_esperada)).rstrip('0').rstrip('.') }}">
+                                </div>
+                                {% if tarefa.tipo_operacao == 'enderecamento' %}
+                                <div>
+                                    <label for="corredor_destino_{{ tarefa.id }}">Corredor de destino</label>
+                                    <input type="text" id="corredor_destino_{{ tarefa.id }}" name="corredor_destino" value="{{ tarefa.corredor_destino or '' }}" placeholder="Ex: A1">
+                                </div>
+                                <div>
+                                    <label for="prateleira_destino_{{ tarefa.id }}">Prateleira de destino</label>
+                                    <input type="text" id="prateleira_destino_{{ tarefa.id }}" name="prateleira_destino" value="{{ tarefa.prateleira_destino or '' }}" placeholder="Ex: P3">
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="observacoes_execucao_{{ tarefa.id }}">Observações da execução</label>
+                                <textarea id="observacoes_execucao_{{ tarefa.id }}" name="observacoes_execucao" placeholder="Ex: lote finalizado, faltou material, divergência na contagem."></textarea>
+                            </div>
+
+                            <div class="task-actions">
+                                <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Concluir tarefa</button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <div class="helper-banner">
+                            Quantidade realizada: <strong>{{ ('%.3f'|format(tarefa.quantidade_realizada or 0)).rstrip('0').rstrip('.') }}</strong>
+                            {% if tarefa.concluido_em %}
+                            · Finalizada em {{ tarefa.concluido_em.strftime('%d/%m/%Y %H:%M') }}
+                            {% endif %}
+                            {% if tarefa.observacoes_execucao %}
+                            <br>{{ tarefa.observacoes_execucao }}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-panel">
+                    <div>
+                        <strong style="display: block; margin-bottom: 8px; color: var(--text-main);">Nenhuma tarefa atribuída para você</strong>
+                        <p style="margin: 0;">Quando um gestor ou administrador delegar o balanço do dia, as ordens vão aparecer aqui.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </article>
+
+            <article class="balanco-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Delegar tarefa do dia</h3>
+                        <p class="helper-text">Use a leitura do SKU para transformar o balanço em uma missão operacional: quem faz, quanto precisa entregar e se o resultado move o item para a prateleira.</p>
+                    </div>
+                    {% if current_user and current_user.can_assign_balanco %}
+                    <span class="mini-count">{{ total_tarefas_delegadas }}</span>
+                    {% endif %}
+                </div>
+
+                {% if current_user and current_user.can_assign_balanco %}
+                    {% if sku %}
+                    <form action="{{ url_for('balanco.cadastrar_tarefa_balanco') }}" method="POST" class="delegate-form">
+                        <input type="hidden" name="sku_id" value="{{ sku.id }}">
+                        <input type="hidden" name="next" value="{{ url_for('balanco.gerenciar_balanco', sku_id=sku.id) }}">
+
+                        <div class="task-meta-grid">
+                            <div><span>SKU selecionado</span><strong>{{ sku.codigo }}</strong></div>
+                            <div><span>Modelo</span><strong>{{ sku.nome }}</strong></div>
+                            <div><span>Recebimento atual</span><strong>{{ ('%.3f'|format(quantidade_recebida)).rstrip('0').rstrip('.') }}</strong></div>
+                        </div>
+
+                        <div class="task-form-grid">
+                            <div>
+                                <label for="responsavel_id">Responsável</label>
+                                <select id="responsavel_id" name="responsavel_id" required>
+                                    <option value="">Selecione</option>
+                                    {% for responsavel in responsaveis_delegaveis %}
+                                    <option value="{{ responsavel.id }}">{{ responsavel.username }} · {{ responsavel.nome_papel }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="tipo_operacao">Tipo de operação</label>
+                                <select id="tipo_operacao" name="tipo_operacao" required>
+                                    {% for valor, rotulo in tipos_operacao.items() %}
+                                    <option value="{{ valor }}">{{ rotulo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="quantidade_esperada">Quantidade esperada</label>
+                                <input type="text" inputmode="decimal" id="quantidade_esperada" name="quantidade_esperada" placeholder="Ex: 25" required>
+                            </div>
+                            <div>
+                                <label for="data_referencia">Data de referência</label>
+                                <input type="date" id="data_referencia" name="data_referencia">
+                            </div>
+                        </div>
+
+                        <div class="task-form-grid">
+                            <div>
+                                <label for="contexto">Contexto</label>
+                                <input type="text" id="contexto" name="contexto" placeholder="Ex: Pães embalados do dia, reposição da tarde">
+                            </div>
+                            <div>
+                                <label for="titulo">Título customizado</label>
+                                <input type="text" id="titulo" name="titulo" placeholder="Opcional, o sistema pode gerar automaticamente">
+                            </div>
+                        </div>
+
+                        <div class="task-form-grid">
+                            <div>
+                                <label for="corredor_destino">Corredor de destino</label>
+                                <input type="text" id="corredor_destino" name="corredor_destino" placeholder="Ex: A1">
+                            </div>
+                            <div>
+                                <label for="prateleira_destino">Prateleira de destino</label>
+                                <input type="text" id="prateleira_destino" name="prateleira_destino" placeholder="Ex: P3">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="descricao">Descrição operacional</label>
+                            <textarea id="descricao" name="descricao" placeholder="Explique a missão do dia. Ex: embalar e baixar 40 unidades do lote matinal ou levar 15 unidades do recebimento para a prateleira B2."></textarea>
+                        </div>
+
+                        <div class="task-actions">
+                            <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Delegar tarefa</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="empty-panel">
+                        <div>
+                            <strong style="display: block; margin-bottom: 8px; color: var(--text-main);">Leia um SKU para delegar</strong>
+                            <p style="margin: 0;">A delegação nasce sempre em cima de um SKU específico. Leia o QR ou digite o código para liberar o formulário de distribuição do balanço.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if tarefas_delegadas %}
+                    <div class="helper-banner">
+                        Últimas ordens criadas por você. Pendentes continuam aguardando execução até o responsável concluir ou você cancelar.
+                    </div>
+                    {% for tarefa in tarefas_delegadas %}
+                    <article class="task-card">
+                        <div class="task-header">
+                            <div>
+                                <span class="task-status {{ 'pending' if tarefa.status == 'pendente' else 'done' if tarefa.status == 'concluido' else 'cancelled' }}">{{ tarefa.status_label }}</span>
+                                <h4>{{ tarefa.titulo }}</h4>
+                                <p>{{ tarefa.responsavel.username }} · {{ tarefa.responsavel.nome_papel }}</p>
+                            </div>
+                            <a class="btn-secondary" href="{{ url_for('balanco.gerenciar_balanco', sku_id=tarefa.sku_id) }}">
+                                <i class="fas fa-arrow-up-right-from-square"></i>
+                                Abrir SKU
+                            </a>
+                        </div>
+
+                        <div class="task-meta-grid">
+                            <div><span>SKU</span><strong>{{ tarefa.sku.codigo }}</strong></div>
+                            <div><span>Esperado</span><strong>{{ ('%.3f'|format(tarefa.quantidade_esperada)).rstrip('0').rstrip('.') }}</strong></div>
+                            <div><span>Operação</span><strong>{{ tarefa.tipo_operacao_label }}</strong></div>
+                            <div><span>Destino</span><strong>{{ tarefa.destino_formatado }}</strong></div>
+                        </div>
+
+                        {% if tarefa.is_open %}
+                        <div class="task-actions">
+                            <form action="{{ url_for('balanco.cancelar_tarefa_balanco', id=tarefa.id) }}" method="POST" onsubmit="return confirm('Cancelar esta tarefa de balanço?');">
+                                <input type="hidden" name="next" value="{{ url_for('balanco.gerenciar_balanco', sku_id=tarefa.sku_id) }}">
+                                <button type="submit" class="btn-secondary"><i class="fas fa-ban"></i> Cancelar tarefa</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="helper-banner">
+                            Resultado entregue: <strong>{{ ('%.3f'|format(tarefa.quantidade_realizada or 0)).rstrip('0').rstrip('.') }}</strong>
+                            {% if tarefa.observacoes_execucao %}
+                            <br>{{ tarefa.observacoes_execucao }}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                    {% endif %}
+                {% else %}
+                <div class="empty-panel">
+                    <div>
+                        <strong style="display: block; margin-bottom: 8px; color: var(--text-main);">Seu papel não delega tarefas</strong>
+                        <p style="margin: 0;">Peça ao administrador para vincular um perfil funcional com permissão de delegação se você também precisa distribuir o balanço do dia.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </article>
+        </section>
+
         <section class="scan-shell">
             <article class="scan-card">
                 <span class="eyebrow">Leitura</span>
                 <h3>Resolver SKU no balanço</h3>
-                <p>Cole o payload do QR Code gerado no SKU ou informe apenas o código do SKU. O sistema cruza automaticamente os produtos vinculados e resume o saldo recebido, endereçado e total.</p>
+                <p>Cole o payload do QR Code gerado no SKU ou informe apenas o código do SKU. O sistema cruza automaticamente os produtos vinculados e abre a visão operacional daquele item.</p>
 
                 <form method="GET" class="scan-form">
                     <div>
@@ -279,7 +683,7 @@
                         <span class="meta-pill"><i class="fas fa-wave-square"></i>{% if origem_leitura == 'qrcode' %}QR Code{% elif origem_leitura == 'codigo' %}Código digitado{% else %}Atalho interno{% endif %}</span>
                     </div>
 
-                    <p class="helper-text">Nesta versão, o balanço considera como <strong>chegou</strong> todo saldo ainda sem corredor/prateleira preenchidos. O que já possui endereçamento entra automaticamente como <strong>na prateleira</strong>.</p>
+                    <p class="helper-text">Nesta versão, o balanço considera como <strong>chegou</strong> todo saldo ainda sem corredor/prateleira preenchidos. O que já possui endereçamento entra automaticamente como <strong>na prateleira</strong>. Quando uma tarefa de endereçamento é concluída, o saldo sai do recebimento e entra no destino informado.</p>
                 </div>
                 {% else %}
                 <div class="empty-panel">
@@ -329,7 +733,7 @@
                 <div class="panel-header">
                     <div>
                         <h3>Lançamento rápido de entrada</h3>
-                        <p class="helper-text">Registre uma nova chegada já vinculada ao SKU lido. Se deixar corredor e prateleira vazios, o saldo entra como recebido e pendente de endereçamento.</p>
+                        <p class="helper-text">Use este formulário quando a mercadoria acabou de chegar. O saldo nasce em recebimento e depois pode ser distribuído por tarefa operacional para o estoquista ou outro executor.</p>
                     </div>
                 </div>
 
@@ -377,7 +781,7 @@
                 <div class="panel-header">
                     <div>
                         <h3>Mapa por localização</h3>
-                        <p class="helper-text">Resumo consolidado dos registros encontrados para o SKU lido.</p>
+                        <p class="helper-text">Resumo consolidado dos registros encontrados para o SKU lido, mostrando o que ainda está em recebimento e o que já foi distribuído para a prateleira.</p>
                     </div>
                 </div>
 
@@ -423,7 +827,7 @@
             <div class="panel-header" style="margin-bottom: 0;">
                 <div>
                     <h3>Produtos relacionados ao SKU</h3>
-                    <p class="table-hint">Cada linha representa um registro de estoque vinculado ao SKU identificado pelo QR Code.</p>
+                    <p class="table-hint">Cada linha representa um registro de estoque vinculado ao SKU identificado pelo QR Code. O histórico abaixo reflete tanto entradas diretas quanto endereçamentos concluídos via tarefa.</p>
                 </div>
             </div>
 

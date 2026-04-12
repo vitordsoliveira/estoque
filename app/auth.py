@@ -122,6 +122,28 @@ def admin_required(view_func):
     return wrapped_view
 
 
+def functional_permission_required(permission_name, error_message):
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            current_user = get_current_user()
+            if not current_user:
+                return redirect(url_for('auth.login', next=get_current_request_path()))
+
+            if current_user.is_admin:
+                return view_func(*args, **kwargs)
+
+            if not getattr(current_user, permission_name, False):
+                flash(error_message, 'danger')
+                return redirect(url_for('main.index'))
+
+            return view_func(*args, **kwargs)
+
+        return wrapped_view
+
+    return decorator
+
+
 def register_auth_hooks(app):
     @app.before_request
     def enforce_login():

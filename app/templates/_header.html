@@ -27,6 +27,8 @@
             <li><a href="{{ url_for('tipo.gerenciar_tipo') }}"
                     class="{{ 'active' if current_blueprint == 'tipo' else '' }}">Tipos</a></li>
             {% if current_user and current_user.is_admin %}
+                <li><a href="{{ url_for('hierarquia.gerenciar_hierarquia') }}"
+                    class="{{ 'active' if current_blueprint == 'hierarquia' else '' }}">Hierarquia</a></li>
             <li><a href="{{ url_for('usuarios.gerenciar_usuarios') }}"
                     class="{{ 'active' if current_blueprint == 'usuarios' else '' }}">Usuários</a></li>
                 <li><a href="{{ url_for('departamento.gerenciar_departamento') }}"
@@ -42,8 +44,8 @@
             <span>Olá {{ current_user.username if current_user else 'Usuário' }}</span>
             <small>
                 {{ current_user.email if current_user else '' }}
-                {% if current_user and current_user.classe %}
-                • {{ current_user.classe|capitalize }}
+                {% if current_user and current_user.nome_papel %}
+                • {{ current_user.nome_papel }}
                 {% endif %}
             </small>
         </div>

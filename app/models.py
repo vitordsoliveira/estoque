@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime, Boolean, Text, Date, String
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -17,6 +17,17 @@ class Obra(db.Model):
     id = Column(Integer, primary_key=True)
     nome = Column(String(150), nullable=False)
     users = relationship('User', backref='obra', lazy=True)
+
+class PerfilFuncional(db.Model):
+    __tablename__ = 'perfil_funcional'
+    id = Column(Integer, primary_key=True)
+    nome = Column(String(100), nullable=False, unique=True)
+    descricao = Column(Text, nullable=True)
+    nivel_hierarquico = Column(Integer, nullable=False, default=1)
+    pode_atribuir_balanco = Column(Boolean, default=False)
+    pode_executar_balanco = Column(Boolean, default=True)
+    pode_validar_balanco = Column(Boolean, default=False)
+    users = relationship('User', backref='perfil_funcional', lazy=True)
 
 class Familia(db.Model):
     __tablename__ = 'familia'
@@ -52,9 +63,12 @@ class User(db.Model):
     ramal = Column(String(20))
     numero_corporativo = Column(String(20))
     cargo = Column(String(50))
+    perfil_funcional_id = Column(Integer, ForeignKey('perfil_funcional.id'))
     
     departamento_id = Column(Integer, ForeignKey('departamento.id'))
     obra_id = Column(Integer, ForeignKey('obra.id'))
+    gestor_id = Column(Integer, ForeignKey('user.id'))
+    gestor = relationship('User', remote_side=[id], foreign_keys=[gestor_id], backref=backref('subordinados', lazy=True))
     
     # Relacionamento para saber quais equipamentos da empresa estão com ele
     patrimonios = relationship("Patrimonio", back_populates="usuario_responsavel")
@@ -74,6 +88,38 @@ class User(db.Model):
     @property
     def is_admin(self):
         return (self.classe or '').strip().lower() == 'admin'
+
+    @property
+    def nome_papel(self):
+        if self.is_admin:
+            return 'Administrador'
+        if self.perfil_funcional:
+            return self.perfil_funcional.nome
+        return self.cargo or 'Sem papel funcional'
+
+    @property
+    def can_assign_balanco(self):
+        if self.is_admin:
+            return True
+        if not self.perfil_funcional:
+            return False
+        return bool(self.perfil_funcional.pode_atribuir_balanco)
+
+    @property
+    def can_execute_balanco(self):
+        if self.is_admin:
+            return True
+        if not self.perfil_funcional:
+            return False
+        return bool(self.perfil_funcional.pode_executar_balanco)
+
+    @property
+    def can_validate_balanco(self):
+        if self.is_admin:
+            return True
+        if not self.perfil_funcional:
+            return False
+        return bool(self.perfil_funcional.pode_validar_balanco)
 
 class Sku(db.Model):
     __tablename__ = 'sku'
@@ -99,6 +145,7 @@ class Sku(db.Model):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     produtos_em_estoque = relationship("Produto", back_populates="sku")
+    tarefas_balanco = relationship("TarefaBalanco", back_populates="sku")
     ativos_patrimonio = relationship("Patrimonio", back_populates="sku")
 
 class Marca(db.Model):
@@ -138,6 +185,60 @@ class Produto(db.Model):
             return 0.0
         multiplicador = peso_lido_na_balanca / self.sku.peso
         return round(multiplicador * self.sku.valorPeso, 2)
+
+class TarefaBalanco(db.Model):
+    __tablename__ = 'tarefa_balanco'
+    id = Column(Integer, primary_key=True)
+
+    titulo = Column(String(150), nullable=False)
+    descricao = Column(Text, nullable=True)
+    contexto = Column(String(80), nullable=True)
+    tipo_operacao = Column(String(30), nullable=False, default='conferencia')
+    status = Column(String(30), nullable=False, default='pendente')
+    data_referencia = Column(Date, nullable=True)
+
+    quantidade_esperada = Column(Float, nullable=False, default=0.0)
+    quantidade_realizada = Column(Float, nullable=True)
+
+    sku_id = Column(Integer, ForeignKey('sku.id'), nullable=False)
+    responsavel_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    criado_por_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+
+    corredor_destino = Column(String(50), nullable=True)
+    prateleira_destino = Column(String(50), nullable=True)
+    observacoes_execucao = Column(Text, nullable=True)
+
+    concluido_em = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    sku = relationship("Sku", back_populates="tarefas_balanco")
+    responsavel = relationship("User", foreign_keys=[responsavel_id], backref=backref('tarefas_balanco_recebidas', lazy=True))
+    criado_por = relationship("User", foreign_keys=[criado_por_id], backref=backref('tarefas_balanco_delegadas', lazy=True))
+
+    @property
+    def destino_formatado(self):
+        if (self.corredor_destino or '').strip() or (self.prateleira_destino or '').strip():
+            return f'{(self.corredor_destino or "-").strip() or "-"} / {(self.prateleira_destino or "-").strip() or "-"}'
+        return 'Sem destino físico'
+
+    @property
+    def tipo_operacao_label(self):
+        if self.tipo_operacao == 'enderecamento':
+            return 'Endereçamento para prateleira'
+        return 'Conferência operacional'
+
+    @property
+    def status_label(self):
+        return {
+            'pendente': 'Pendente',
+            'concluido': 'Concluído',
+            'cancelado': 'Cancelado',
+        }.get(self.status, (self.status or 'Pendente').capitalize())
+
+    @property
+    def is_open(self):
+        return (self.status or '').strip().lower() == 'pendente'
 
 class Patrimonio(db.Model):
     __tablename__ = 'patrimonio'
