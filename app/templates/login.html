@@ -18,30 +18,6 @@
                 <span class="login-badge">Acesso protegido</span>
                 <h1>Controle seu estoque com autenticação centralizada.</h1>
                 <p>Ao iniciar o sistema, o acesso passa obrigatoriamente pela tela de login. O administrador usa sessão web; usuários comuns podem receber JWT via token dedicado.</p>
-
-                <div class="login-highlights">
-                    <article>
-                        <i class="fas fa-shield-halved"></i>
-                        <div>
-                            <strong>Senha com hash</strong>
-                            <span>As credenciais são validadas com hash PBKDF2.</span>
-                        </div>
-                    </article>
-                    <article>
-                        <i class="fas fa-key"></i>
-                        <div>
-                            <strong>JWT para usuários</strong>
-                            <span>O endpoint de token fica pronto para os perfis não-admin.</span>
-                        </div>
-                    </article>
-                    <article>
-                        <i class="fas fa-user-lock"></i>
-                        <div>
-                            <strong>Admin por sessão</strong>
-                            <span>O admin fixo não recebe JWT e entra pelo fluxo tradicional da aplicação.</span>
-                        </div>
-                    </article>
-                </div>
             </div>
         </section>
 
@@ -78,7 +54,7 @@
 
                     <label class="login-field">
                         <span>E-mail</span>
-                        <input type="email" name="email" value="{{ email }}" placeholder="admin@estoque.com" autocomplete="email" required>
+                        <input type="email" name="email" value="{{ email }}" placeholder="usuario@estoque.com" autocomplete="email" required>
                     </label>
 
                     <label class="login-field">
