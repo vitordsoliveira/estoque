@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Usuários - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 640px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 6px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .form-check input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+
+        .user-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .user-role-badge {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .user-role-admin {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .user-role-user {
+            background: #ecfdf3;
+            color: #166534;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .status-pill-active {
+            background: #ecfdf3;
+            color: #166534;
+        }
+
+        .status-pill-inactive {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .btn-icon[disabled] {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .form-helper {
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .modal-content {
+                max-width: calc(100% - 24px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Usuários</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Cadastre usuários operacionais que herdarão o login e poderão emitir JWT no fluxo não-admin.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-usuario"><i class="fas fa-user-plus"></i> Novo Usuário</button>
+        </div>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por nome, e-mail, cargo ou telefone..." data-table-search data-table-target="#usuarios-table" data-empty-message="Nenhum usuário encontrado.">
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table" id="usuarios-table">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>E-mail</th>
+                        <th>Cargo</th>
+                        <th>Contato</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr data-searchable-row data-search-text="{{ usuario.username }} {{ usuario.email }} {{ usuario.cargo or '' }} {{ usuario.ramal or '' }} {{ usuario.numero_corporativo or '' }} {{ usuario.classe or '' }} {{ 'ativo' if usuario.active else 'inativo' }}">
+                        <td>
+                            <div class="user-cell">
+                                <strong>{{ usuario.username }}</strong>
+                                {% if usuario.is_admin %}
+                                <small>Usuário fixo da aplicação</small>
+                                {% else %}
+                                <small>Login habilitado</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>{{ usuario.email }}</td>
+                        <td>{{ usuario.cargo or '-' }}</td>
+                        <td>
+                            {% if usuario.ramal or usuario.numero_corporativo %}
+                                {{ usuario.ramal or '-' }} / {{ usuario.numero_corporativo or '-' }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="user-role-badge {{ 'user-role-admin' if usuario.is_admin else 'user-role-user' }}">
+                                {{ 'Admin' if usuario.is_admin else 'Usuário' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-pill {{ 'status-pill-active' if usuario.active else 'status-pill-inactive' }}">
+                                {{ 'Ativo' if usuario.active else 'Inativo' }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if usuario.is_admin %}
+                            <button type="button" class="btn-icon" title="Admin fixo" disabled><i class="fas fa-lock"></i></button>
+                            {% else %}
+                            <button
+                                type="button"
+                                class="btn-icon"
+                                title="Editar"
+                                data-id="{{ usuario.id }}"
+                                data-username="{{ usuario.username }}"
+                                data-email="{{ usuario.email }}"
+                                data-cargo="{{ usuario.cargo or '' }}"
+                                data-ramal="{{ usuario.ramal or '' }}"
+                                data-numero-corporativo="{{ usuario.numero_corporativo or '' }}"
+                                data-active="{{ 'true' if usuario.active else 'false' }}"
+                                onclick="abrirEditarUsuario(this)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-usuario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Usuário</h2>
+                <button class="btn-close" id="btn-close-usuario"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('usuarios.cadastrar_usuario') }}" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">Nome de usuário</label>
+                            <input type="text" id="username" name="username" placeholder="Ex: joao.silva" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" name="email" placeholder="Ex: joao@estoque.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">Senha inicial</label>
+                            <input type="password" id="password" name="password" placeholder="Mínimo de 8 caracteres" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cargo">Cargo</label>
+                            <input type="text" id="cargo" name="cargo" placeholder="Ex: Almoxarife">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ramal">Ramal</label>
+                            <input type="text" id="ramal" name="ramal" placeholder="Ex: 204">
+                        </div>
+                        <div class="form-group">
+                            <label for="numero_corporativo">Número corporativo</label>
+                            <input type="text" id="numero_corporativo" name="numero_corporativo" placeholder="Ex: (11) 99999-0000">
+                        </div>
+                    </div>
+
+                    <label class="form-check">
+                        <input type="checkbox" id="active" name="active" checked>
+                        <span>Usuário ativo ao salvar</span>
+                    </label>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-usuario">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Usuário</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-editar-usuario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Usuário</h2>
+                <button class="btn-close" id="btn-close-editar-usuario"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-usuario" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username_editar">Nome de usuário</label>
+                            <input type="text" id="username_editar" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email_editar">E-mail</label>
+                            <input type="email" id="email_editar" name="email" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password_editar">Nova senha</label>
+                            <input type="password" id="password_editar" name="password" placeholder="Deixe em branco para manter a senha atual">
+                        </div>
+                        <div class="form-group">
+                            <label for="cargo_editar">Cargo</label>
+                            <input type="text" id="cargo_editar" name="cargo">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ramal_editar">Ramal</label>
+                            <input type="text" id="ramal_editar" name="ramal">
+                        </div>
+                        <div class="form-group">
+                            <label for="numero_corporativo_editar">Número corporativo</label>
+                            <input type="text" id="numero_corporativo_editar" name="numero_corporativo">
+                        </div>
+                    </div>
+
+                    <label class="form-check">
+                        <input type="checkbox" id="active_editar" name="active">
+                        <span>Usuário ativo</span>
+                    </label>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-usuario">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Usuário</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
+    <script>
+        const btnNovoUsuario = document.getElementById('btn-novo-usuario');
+        const modalUsuario = document.getElementById('modal-usuario');
+        const btnCloseUsuario = document.getElementById('btn-close-usuario');
+        const btnCancelarUsuario = document.getElementById('btn-cancelar-usuario');
+
+        const modalEditarUsuario = document.getElementById('modal-editar-usuario');
+        const btnCloseEditarUsuario = document.getElementById('btn-close-editar-usuario');
+        const btnCancelarEditarUsuario = document.getElementById('btn-cancelar-editar-usuario');
+        const formEditarUsuario = document.getElementById('form-editar-usuario');
+
+        btnNovoUsuario.addEventListener('click', () => modalUsuario.classList.add('active'));
+
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        btnCloseUsuario.addEventListener('click', () => fecharModal(modalUsuario));
+        btnCancelarUsuario.addEventListener('click', () => fecharModal(modalUsuario));
+        btnCloseEditarUsuario.addEventListener('click', () => fecharModal(modalEditarUsuario));
+        btnCancelarEditarUsuario.addEventListener('click', () => fecharModal(modalEditarUsuario));
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modalUsuario) fecharModal(modalUsuario);
+            if (event.target === modalEditarUsuario) fecharModal(modalEditarUsuario);
+        });
+
+        function abrirEditarUsuario(button) {
+            const id = button.getAttribute('data-id');
+            document.getElementById('username_editar').value = button.getAttribute('data-username') || '';
+            document.getElementById('email_editar').value = button.getAttribute('data-email') || '';
+            document.getElementById('cargo_editar').value = button.getAttribute('data-cargo') || '';
+            document.getElementById('ramal_editar').value = button.getAttribute('data-ramal') || '';
+            document.getElementById('numero_corporativo_editar').value = button.getAttribute('data-numero-corporativo') || '';
+            document.getElementById('active_editar').checked = button.getAttribute('data-active') === 'true';
+            document.getElementById('password_editar').value = '';
+
+            formEditarUsuario.action = `/usuarios/editar/${id}`;
+            modalEditarUsuario.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

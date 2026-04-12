@@ -3,7 +3,7 @@ from functools import wraps
 from urllib.parse import urlsplit
 
 import jwt
-from flask import current_app, g, redirect, request, session, url_for
+from flask import current_app, flash, g, redirect, request, session, url_for
 
 from app.models import User, db
 
@@ -101,6 +101,22 @@ def login_required(view_func):
     def wrapped_view(*args, **kwargs):
         if not get_current_user():
             return redirect(url_for('auth.login', next=get_current_request_path()))
+        return view_func(*args, **kwargs)
+
+    return wrapped_view
+
+
+def admin_required(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        current_user = get_current_user()
+        if not current_user:
+            return redirect(url_for('auth.login', next=get_current_request_path()))
+
+        if not current_user.is_admin:
+            flash('Acesso restrito ao administrador.', 'danger')
+            return redirect(url_for('main.index'))
+
         return view_func(*args, **kwargs)
 
     return wrapped_view
