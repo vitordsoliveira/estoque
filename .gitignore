@@ -39,3 +39,5 @@ app/routes/__pycache__/produtos.cpython-313.pyc
 app/routes/__pycache__/sku.cpython-313.pyc
 app/routes/__pycache__/tipo.cpython-313.pyc
 app/routes/__pycache__/usuarios.cpython-313.pyc
+app/routes/__pycache__/hierarquia.cpython-313.pyc
+migrations/versions/__pycache__/33b7b59a565a_adicionando_colunas_faltantes.cpython-313.pyc
