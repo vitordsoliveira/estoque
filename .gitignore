@@ -37,3 +37,4 @@ app/routes/__pycache__/obra.cpython-314.pyc
 app/routes/__pycache__/patrimonios.cpython-314.pyc
 app/routes/__pycache__/usuarios.cpython-314.pyc
 app/__pycache__
+.env
