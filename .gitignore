@@ -2,3 +2,13 @@ app/__pycache__/__init__.cpython-310.pyc
 app/__pycache__/extensions.cpython-310.pyc
 app/__pycache__/models.cpython-310.pyc
 .env
+app/__pycache__/__init__.cpython-314.pyc
+.gitignore
+app/routes/__pycache__/familia.cpython-314.pyc
+app/routes/__pycache__/marca.cpython-314.pyc
+app/routes/__pycache__/sku.cpython-314.pyc
+.gitignore
+app/__pycache__/models.cpython-314.pyc
+app/routes/__pycache__/produtos.cpython-314.pyc
+app/routes/__pycache__/main.cpython-314.pyc
+app/routes/__pycache__/tipo.cpython-314.pyc
