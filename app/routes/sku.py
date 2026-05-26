@@ -1,5 +1,4 @@
 import io
-import json
 import re
 
 import qrcode
@@ -16,19 +15,7 @@ sku = Blueprint(
 
 
 def serializar_payload_qrcode_sku(sku_obj):
-    return json.dumps(
-        {
-            'type': 'sku',
-            'id': sku_obj.id,
-            'codigo': sku_obj.codigo,
-            'nome': sku_obj.nome,
-            'marca': sku_obj.marca.nome if sku_obj.marca else None,
-            'familia': sku_obj.familia.nome if sku_obj.familia else None,
-            'tipo': sku_obj.tipo.nome if sku_obj.tipo else None,
-        },
-        ensure_ascii=False,
-        separators=(',', ':')
-    )
+    return sku_obj.codigo
 
 
 def gerar_svg_qrcode_sku(sku_obj):
