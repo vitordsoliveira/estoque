@@ -351,6 +351,51 @@
             font-weight: 700;
         }
 
+        .bipar-display {
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .bipar-display > span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .bipar-display > strong {
+            font-size: 1.15rem;
+            color: var(--text-main);
+        }
+
+        .bipar-display.bipar-ok {
+            background: #ecfdf5;
+            border-color: #6ee7b7;
+        }
+
+        .bipar-display.bipar-ok > strong {
+            color: #047857;
+        }
+
+        .bipar-reset {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            text-align: left;
+            width: fit-content;
+        }
+
+        .bipar-reset:hover { color: #dc2626; }
+
         @media (max-width: 640px) {
             .scan-card,
             .balanco-panel {
@@ -412,6 +457,7 @@
         </section>
 
         <section class="task-board">
+            {% if current_user.is_admin or current_user.can_execute_balanco %}
             <article class="balanco-panel">
                 <div class="panel-header">
                     <div>
@@ -449,9 +495,11 @@
                         <form action="{{ url_for('balanco.concluir_tarefa_balanco', id=tarefa.id) }}" method="POST" class="task-form">
                             <input type="hidden" name="next" value="{{ url_for('balanco.gerenciar_balanco', sku_id=tarefa.sku_id) }}">
                             <div class="task-form-grid">
-                                <div>
-                                    <label for="quantidade_realizada_{{ tarefa.id }}">Quantidade realizada</label>
-                                    <input type="text" inputmode="decimal" id="quantidade_realizada_{{ tarefa.id }}" name="quantidade_realizada" value="{{ ('%.3f'|format(tarefa.quantidade_esperada)).rstrip('0').rstrip('.') }}">
+                                <div class="bipar-display" data-task-id="{{ tarefa.id }}" data-esperada="{{ tarefa.quantidade_esperada }}" data-sku-codigo="{{ tarefa.sku.codigo }}">
+                                    <span>Bipagens confirmadas</span>
+                                    <strong><span class="bipar-count">0</span> / {{ ('%.3f'|format(tarefa.quantidade_esperada)).rstrip('0').rstrip('.') }}</strong>
+                                    <button type="button" class="bipar-reset">Zerar contagem</button>
+                                    <input type="hidden" name="quantidade_realizada" value="">
                                 </div>
                                 {% if tarefa.tipo_operacao == 'enderecamento' %}
                                 <div>
@@ -471,7 +519,7 @@
                             </div>
 
                             <div class="task-actions">
-                                <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Concluir tarefa</button>
+                                <button type="submit" class="btn-primary btn-concluir" disabled><i class="fas fa-check"></i> Concluir tarefa</button>
                             </div>
                         </form>
                         {% else %}
@@ -496,7 +544,9 @@
                 </div>
                 {% endif %}
             </article>
+            {% endif %}
 
+            {% if current_user.is_admin or current_user.can_assign_balanco %}
             <article class="balanco-panel">
                 <div class="panel-header">
                     <div>
@@ -631,15 +681,9 @@
                     </article>
                     {% endfor %}
                     {% endif %}
-                {% else %}
-                <div class="empty-panel">
-                    <div>
-                        <strong style="display: block; margin-bottom: 8px; color: var(--text-main);">Seu papel não delega tarefas</strong>
-                        <p style="margin: 0;">Peça ao administrador para vincular um perfil funcional com permissão de delegação se você também precisa distribuir o balanço do dia.</p>
-                    </div>
-                </div>
                 {% endif %}
             </article>
+            {% endif %}
         </section>
 
         <section class="scan-shell">
@@ -874,25 +918,95 @@
     (function () {
         const scanInput = document.getElementById('leitura');
         const scanForm  = scanInput ? scanInput.closest('form') : null;
-
         if (!scanInput || !scanForm) return;
 
-        // Enter sem Shift → submete (comportamento do leitor HID)
+        // Debounce: impede contar o mesmo scan duas vezes em menos de 700ms
+        const DEBOUNCE_MS = 700;
+        let ultimaScan = 0;
+
+        function encontrarBipar(codigo) {
+            var encontrado = null;
+            document.querySelectorAll('.bipar-display').forEach(function (el) {
+                if (el.dataset.skuCodigo === codigo) encontrado = el;
+            });
+            return encontrado;
+        }
+
+        function atualizarBipar(el) {
+            var taskId   = el.dataset.taskId;
+            var esperada = parseFloat(el.dataset.esperada);
+            var count    = parseInt(sessionStorage.getItem('bipar_' + taskId) || '0', 10);
+            var form     = el.closest('form');
+            var btn      = form ? form.querySelector('.btn-concluir') : null;
+            var span     = el.querySelector('.bipar-count');
+            var hidden   = el.querySelector('input[name="quantidade_realizada"]');
+            var ok       = count >= Math.ceil(esperada);
+
+            if (span)   span.textContent = count;
+            if (btn)    btn.disabled = !ok;
+            if (hidden) hidden.value = ok ? esperada : '';
+            el.classList.toggle('bipar-ok', ok);
+        }
+
+        // Restaurar contadores ao carregar a página
+        document.querySelectorAll('.bipar-display').forEach(atualizarBipar);
+
+        // Botão "Zerar contagem"
+        document.querySelectorAll('.bipar-reset').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var el = btn.closest('.bipar-display');
+                if (!el) return;
+                sessionStorage.removeItem('bipar_' + el.dataset.taskId);
+                atualizarBipar(el);
+            });
+        });
+
+        // Limpar sessionStorage ao concluir a tarefa
+        document.querySelectorAll('.task-form').forEach(function (form) {
+            form.addEventListener('submit', function () {
+                var bipar = form.querySelector('.bipar-display');
+                if (bipar) sessionStorage.removeItem('bipar_' + bipar.dataset.taskId);
+            });
+        });
+
+        // Interceptar scan: Enter no campo de leitura
         scanInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (scanInput.value.trim()) scanForm.submit();
+            if (e.key !== 'Enter' || e.shiftKey) return;
+            e.preventDefault();
+            var codigo = scanInput.value.trim();
+            if (!codigo) return;
+
+            var bipar = encontrarBipar(codigo);
+            if (bipar) {
+                var agora = Date.now();
+                if (agora - ultimaScan < DEBOUNCE_MS) {
+                    // Scan muito rápido: ignorado (segurança anti-duplicata)
+                    scanInput.value = '';
+                    return;
+                }
+                ultimaScan = agora;
+
+                var taskId   = bipar.dataset.taskId;
+                var esperada = parseFloat(bipar.dataset.esperada);
+                var count    = parseInt(sessionStorage.getItem('bipar_' + taskId) || '0', 10);
+                if (count < Math.ceil(esperada)) {
+                    sessionStorage.setItem('bipar_' + taskId, count + 1);
+                }
+                atualizarBipar(bipar);
+                scanInput.value = '';  // Limpa o campo: próximo scan precisa de nova leitura física
+                return;
             }
+
+            // Código não corresponde a nenhuma tarefa pendente → carrega o SKU normalmente
+            scanForm.submit();
         });
 
         // Qualquer tecla alfanumérica fora de inputs → redireciona ao campo de leitura
         document.addEventListener('keydown', function (e) {
-            const tag = document.activeElement ? document.activeElement.tagName : '';
+            var tag = document.activeElement ? document.activeElement.tagName : '';
             if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(tag)) return;
             if (e.ctrlKey || e.altKey || e.metaKey) return;
-            if (e.key.length === 1) {
-                scanInput.focus();
-            }
+            if (e.key.length === 1) scanInput.focus();
         });
     })();
     </script>

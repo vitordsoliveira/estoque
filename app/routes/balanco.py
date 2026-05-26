@@ -433,6 +433,10 @@ def concluir_tarefa_balanco(id):
         flash('A quantidade realizada não pode ser negativa.', 'warning')
         return construir_redirect_balanco(tarefa.sku_id)
 
+    if round(float(quantidade_realizada), 3) != round(float(tarefa.quantidade_esperada), 3):
+        flash('A quantidade realizada precisa ser igual à esperada para concluir a tarefa.', 'danger')
+        return construir_redirect_balanco(tarefa.sku_id)
+
     observacoes = normalizar_texto(request.form.get('observacoes_execucao'))
     corredor_destino = normalizar_texto(request.form.get('corredor_destino')) or tarefa.corredor_destino
     prateleira_destino = normalizar_texto(request.form.get('prateleira_destino')) or tarefa.prateleira_destino
