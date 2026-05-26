@@ -526,6 +526,52 @@
             });
         });
     </script>
+
+    <script>
+    // Suporte a leitor de QR Code / código de barras (HID USB / Bluetooth)
+    (function () {
+        const searchInput = document.querySelector('[data-table-search]');
+        if (!searchInput) return;
+
+        // Foca no campo de busca ao carregar a página
+        searchInput.focus();
+
+        // Ao pressionar Enter no campo de busca, destaca a primeira linha com código exato
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const termo = searchInput.value.trim().toLowerCase();
+            if (!termo) return;
+
+            const rows = document.querySelectorAll('[data-searchable-row]');
+            let encontrou = null;
+            rows.forEach(function (row) {
+                row.style.outline = '';
+                row.style.background = '';
+                const codCell = row.querySelector('td strong');
+                if (codCell && codCell.textContent.trim().toLowerCase() === termo) {
+                    encontrou = row;
+                }
+            });
+
+            if (encontrou) {
+                encontrou.style.background = '#ecfdf5';
+                encontrou.style.outline = '2px solid #059669';
+                encontrou.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+
+        // Qualquer tecla alfanumérica fora de inputs → redireciona ao campo de busca
+        document.addEventListener('keydown', function (e) {
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(tag)) return;
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            if (e.key.length === 1) {
+                searchInput.focus();
+            }
+        });
+    })();
+    </script>
 </body>
 
 </html>

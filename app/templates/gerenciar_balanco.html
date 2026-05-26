@@ -869,6 +869,33 @@
     </main>
 
     {% include '_footer.html' %}
+
+    <script>
+    (function () {
+        const scanInput = document.getElementById('leitura');
+        const scanForm  = scanInput ? scanInput.closest('form') : null;
+
+        if (!scanInput || !scanForm) return;
+
+        // Enter sem Shift → submete (comportamento do leitor HID)
+        scanInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (scanInput.value.trim()) scanForm.submit();
+            }
+        });
+
+        // Qualquer tecla alfanumérica fora de inputs → redireciona ao campo de leitura
+        document.addEventListener('keydown', function (e) {
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(tag)) return;
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            if (e.key.length === 1) {
+                scanInput.focus();
+            }
+        });
+    })();
+    </script>
 </body>
 
 </html>
