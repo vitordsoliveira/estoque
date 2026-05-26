@@ -18,6 +18,8 @@
                     class="{{ 'active' if current_blueprint == 'produtos' else '' }}">Produtos</a></li>
                 <li><a href="{{ url_for('balanco.gerenciar_balanco') }}"
                     class="{{ 'active' if current_blueprint == 'balanco' else '' }}">Balanço</a></li>
+                <li><a href="{{ url_for('recebimento.gerenciar_recebimento') }}"
+                    class="{{ 'active' if current_blueprint == 'recebimento' else '' }}">Recebimento</a></li>
             <li><a href="{{ url_for('sku.gerenciar_sku') }}"
                     class="{{ 'active' if current_blueprint == 'sku' else '' }}">SKU</a></li>
             <li><a href="{{ url_for('marca.gerenciar_marca') }}"

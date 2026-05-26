@@ -147,6 +147,7 @@ class Sku(db.Model):
     produtos_em_estoque = relationship("Produto", back_populates="sku")
     tarefas_balanco = relationship("TarefaBalanco", back_populates="sku")
     ativos_patrimonio = relationship("Patrimonio", back_populates="sku")
+    lotes_recebimento = relationship("LoteRecebimento", back_populates="sku")
 
 class Marca(db.Model):
     __tablename__ = 'marca'
@@ -239,6 +240,37 @@ class TarefaBalanco(db.Model):
     @property
     def is_open(self):
         return (self.status or '').strip().lower() == 'pendente'
+
+class LoteRecebimento(db.Model):
+    __tablename__ = 'lote_recebimento'
+    id = Column(Integer, primary_key=True)
+    codigo_lote = Column(String(50), unique=True, nullable=False)
+    sku_id = Column(Integer, ForeignKey('sku.id'), nullable=False)
+    quantidade_esperada = Column(Float, nullable=False)
+    preco_custo = Column(Float, nullable=True)
+    data_prevista = Column(Date, nullable=True)
+    observacoes = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default='aguardando')
+    criado_por_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    confirmado_por_id = Column(Integer, ForeignKey('user.id'), nullable=True)
+    confirmado_em = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    sku = relationship("Sku", back_populates="lotes_recebimento")
+    criado_por = relationship("User", foreign_keys=[criado_por_id], backref=backref('lotes_criados', lazy=True))
+    confirmado_por = relationship("User", foreign_keys=[confirmado_por_id], backref=backref('lotes_confirmados', lazy=True))
+
+    @property
+    def status_label(self):
+        return {'aguardando': 'Aguardando', 'confirmado': 'Confirmado', 'cancelado': 'Cancelado'}.get(
+            self.status, (self.status or '').capitalize()
+        )
+
+    @property
+    def is_pending(self):
+        return (self.status or '') == 'aguardando'
+
 
 class Patrimonio(db.Model):
     __tablename__ = 'patrimonio'

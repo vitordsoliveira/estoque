@@ -374,6 +374,17 @@ def cadastrar_tarefa_balanco():
         flash('A quantidade esperada precisa ser maior que zero.', 'warning')
         return construir_redirect_balanco(sku.id)
 
+    estoque_total = sum(
+        normalizar_quantidade(p.quantidade)
+        for p in Produto.query.filter_by(sku_id=sku.id).all()
+    )
+    if quantidade_esperada > estoque_total + 1e-9:
+        flash(
+            f'A quantidade esperada ({quantidade_esperada:g}) excede o estoque disponível do SKU ({estoque_total:g}).',
+            'danger',
+        )
+        return construir_redirect_balanco(sku.id)
+
     if tipo_operacao == 'enderecamento' and not corredor_destino and not prateleira_destino:
         flash('Informe o destino físico quando a tarefa for de endereçamento.', 'warning')
         return construir_redirect_balanco(sku.id)
