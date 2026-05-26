@@ -3,7 +3,9 @@ sqlalchemy
 flask_sqlalchemy
 pandas
 pymysql
-dotenv
+python-dotenv
 Flask-Migrate
 PyJWT
 qrcode
+gunicorn
+cryptography

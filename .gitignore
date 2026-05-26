@@ -1,40 +1,32 @@
-app/__pycache__/__init__.cpython-310.pyc
-app/__pycache__/extensions.cpython-310.pyc
-app/__pycache__/models.cpython-310.pyc
-app/__pycache__/__init__.cpython-313.pyc
-app/__pycache__/auth.cpython-313.pyc
-app/routes/__pycache__/usuarios.cpython-313.pyc
-app/__pycache__/__init__.cpython-313.pyc
-app/__pycache__/auth.cpython-313.pyc
-app/routes/__pycache__/usuarios.cpython-313.pyc
-app/__pycache__/__init__.cpython-313.pyc
-app/__pycache__/auth.cpython-313.pyc
-app/__pycache__/__init__.cpython-313.pyc
-app/__pycache__/auth.cpython-313.pyc
-.gitignore
-app/__pycache__/models.cpython-313.pyc
-app/routes/__pycache__/balanco.cpython-313.pyc
-app/routes/__pycache__/hierarquia.cpython-313.pyc
-app/routes/__pycache__/usuarios.cpython-313.pyc
-.gitignore
-migrations/versions/__pycache__/33b7b59a565a_adicionando_colunas_faltantes.cpython-313.pyc
-app/__pycache__/__init__.cpython-314.pyc
-app/__pycache__/auth.cpython-314.pyc
-app/__pycache__/models.cpython-314.pyc
-app/__pycache__/number_utils.cpython-314.pyc
-app/routes/__pycache__/auth.cpython-314.pyc
-app/routes/__pycache__/departamento.cpython-314.pyc
-app/routes/__pycache__/familia.cpython-314.pyc
-.gitignore
-app/routes/__pycache__/obra.cpython-314.pyc
-app/routes/__pycache__/produtos.cpython-314.pyc
-.gitignore
-app/routes/__pycache__/marca.cpython-314.pyc
-app/routes/__pycache__/tipo.cpython-314.pyc
-.gitignore
-.gitignore
-.gitignore
-app/routes/__pycache__/usuarios.cpython-314.pyc
-app/routes/__pycache__/main.cpython-314.pyc
-.gitignore
-.gitignore
+# Ambiente virtual
+venv/
+.venv/
+env/
+
+# Variáveis de ambiente (contém senhas!)
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Migrations compilados
+migrations/versions/__pycache__/
+
+# Distribuição / build
+dist/
+build/
+*.egg-info/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
