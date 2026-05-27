@@ -205,6 +205,31 @@ def carregar_tarefas_delegadas(current_user):
     return ordenar_tarefas(tarefas)
 
 
+def carregar_skus_em_recebimento():
+    from sqlalchemy import func
+    from app.models import Sku
+
+    linhas = (
+        db.session.query(Produto.sku_id, func.sum(Produto.quantidade).label('qtd'))
+        .filter(
+            Produto.ativo.is_(True),
+            Produto.quantidade > 0,
+            db.or_(Produto.corredor.is_(None), Produto.corredor == ''),
+            db.or_(Produto.prateleira.is_(None), Produto.prateleira == ''),
+        )
+        .group_by(Produto.sku_id)
+        .all()
+    )
+
+    resultado = []
+    for sku_id, qtd in linhas:
+        sku_obj = db.session.get(Sku, sku_id)
+        if sku_obj:
+            resultado.append({'sku': sku_obj, 'quantidade': float(qtd)})
+
+    return sorted(resultado, key=lambda x: x['sku'].codigo)
+
+
 def usuario_pode_concluir_tarefa(current_user, tarefa):
     if not current_user or not tarefa:
         return False
@@ -319,6 +344,7 @@ def gerenciar_balanco():
     minhas_tarefas = carregar_tarefas_recebidas(current_user)
     tarefas_delegadas = carregar_tarefas_delegadas(current_user)
     responsaveis_delegaveis = carregar_responsaveis_delegaveis(current_user)
+    skus_em_recebimento = carregar_skus_em_recebimento()
 
     return render_template(
         'gerenciar_balanco.html',
@@ -331,6 +357,7 @@ def gerenciar_balanco():
         tipos_operacao=TIPOS_OPERACAO_BALANCO,
         total_tarefas_pendentes=sum(1 for tarefa in minhas_tarefas if tarefa.is_open),
         total_tarefas_delegadas=sum(1 for tarefa in tarefas_delegadas if tarefa.is_open),
+        skus_em_recebimento=skus_em_recebimento,
         **contexto_balanco,
     )
 

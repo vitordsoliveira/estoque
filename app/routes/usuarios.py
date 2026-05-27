@@ -52,7 +52,12 @@ def carregar_referencias_usuario():
     departamentos = Departamento.query.order_by(Departamento.nome.asc()).all()
     obras = Obra.query.order_by(Obra.nome.asc()).all()
     perfis = PerfilFuncional.query.order_by(PerfilFuncional.nivel_hierarquico.desc(), PerfilFuncional.nome.asc()).all()
-    gestores = User.query.filter(User.active.is_(True)).order_by(User.username.asc()).all()
+    gestores = (
+        User.query
+        .filter(User.active.is_(True), User.classe != 'admin')
+        .order_by(User.username.asc())
+        .all()
+    )
     return departamentos, obras, perfis, gestores
 
 
@@ -65,7 +70,12 @@ def resolver_relacao(model_class, entity_id):
 @usuarios.route('/gerenciar', methods=['GET'])
 @admin_required
 def gerenciar_usuarios():
-    usuarios_cadastrados = User.query.order_by(User.username.asc()).all()
+    usuarios_cadastrados = (
+        User.query
+        .filter(User.classe != 'admin')
+        .order_by(User.username.asc())
+        .all()
+    )
     departamentos, obras, perfis, gestores = carregar_referencias_usuario()
     return render_template(
         'gerenciar_usuarios.html',
