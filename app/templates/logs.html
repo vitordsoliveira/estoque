@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs de Auditoria - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <style>
+        .logs-page {
+            padding: 32px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .logs-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary, #1a1a2e);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logs-header h2 i {
+            color: var(--primary, #27ae60);
+        }
+
+        .logs-total {
+            font-size: 0.85rem;
+            color: var(--text-secondary, #6b7280);
+        }
+
+        /* Filtros */
+        .logs-filters {
+            background: var(--white, #fff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 12px;
+            padding: 18px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .filter-group label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary, #6b7280);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            background: var(--bg-light, #f8fafc);
+            color: var(--text-primary, #1a1a2e);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            border-color: var(--primary, #27ae60);
+        }
+
+        .btn-filter {
+            background: var(--primary, #27ae60);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+            align-self: flex-end;
+        }
+
+        .btn-filter:hover {
+            background: #219150;
+        }
+
+        .btn-clear {
+            background: transparent;
+            color: var(--text-secondary, #6b7280);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            align-self: flex-end;
+            text-decoration: none;
+        }
+
+        .btn-clear:hover {
+            border-color: #999;
+            color: var(--text-primary, #1a1a2e);
+        }
+
+        /* Tabela */
+        .logs-table-wrapper {
+            background: var(--white, #fff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .logs-table thead tr {
+            background: var(--bg-light, #f8fafc);
+            border-bottom: 2px solid var(--border-color, #e5e7eb);
+        }
+
+        .logs-table thead th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary, #6b7280);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .logs-table tbody tr {
+            border-bottom: 1px solid var(--border-color, #f0f0f0);
+            transition: background 0.15s;
+        }
+
+        .logs-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .logs-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .logs-table td {
+            padding: 11px 16px;
+            vertical-align: top;
+            color: var(--text-primary, #1a1a2e);
+        }
+
+        .log-date {
+            white-space: nowrap;
+            color: var(--text-secondary, #6b7280);
+            font-size: 0.8rem;
+        }
+
+        .log-user {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .log-papel {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary, #6b7280);
+            font-weight: 400;
+        }
+
+        .log-aba {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 6px;
+            padding: 2px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .log-acao {
+            font-weight: 500;
+        }
+
+        .log-detalhes {
+            color: var(--text-secondary, #6b7280);
+            font-size: 0.82rem;
+            word-break: break-word;
+            max-width: 340px;
+        }
+
+        .log-cliente {
+            font-size: 0.78rem;
+            color: var(--text-secondary, #6b7280);
+            white-space: nowrap;
+        }
+
+        .log-cliente span {
+            display: block;
+        }
+
+        .empty-logs {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary, #9ca3af);
+        }
+
+        .empty-logs i {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
+            opacity: 0.4;
+        }
+
+        /* Paginação */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 20px;
+            border-top: 1px solid var(--border-color, #e5e7eb);
+        }
+
+        .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color, #e5e7eb);
+            background: var(--white, #fff);
+            color: var(--text-primary, #1a1a2e);
+            font-size: 0.875rem;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .page-btn:hover {
+            border-color: var(--primary, #27ae60);
+            color: var(--primary, #27ae60);
+        }
+
+        .page-btn.active {
+            background: var(--primary, #27ae60);
+            border-color: var(--primary, #27ae60);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .page-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    {% include '_header.html' %}
+
+    <main class="logs-page">
+        <div class="logs-header">
+            <h2><i class="fas fa-clipboard-list"></i> Logs de Auditoria</h2>
+            <span class="logs-total">{{ paginacao.total }} registro{{ 's' if paginacao.total != 1 else '' }}</span>
+        </div>
+
+        <!-- Filtros -->
+        <form class="logs-filters" method="GET" action="{{ url_for('admin_logs.ver_logs') }}">
+            <div class="filter-group">
+                <label>Aba</label>
+                <select name="aba">
+                    <option value="">Todas</option>
+                    {% for aba in abas %}
+                    <option value="{{ aba }}" {{ 'selected' if q_aba == aba else '' }}>{{ aba }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Usuário</label>
+                <input type="text" name="usuario" value="{{ q_usuario }}" placeholder="Ex: vitor">
+            </div>
+            <div class="filter-group">
+                <label>Ação</label>
+                <input type="text" name="acao" value="{{ q_acao }}" placeholder="Ex: Login">
+            </div>
+            <button type="submit" class="btn-filter"><i class="fas fa-search"></i> Filtrar</button>
+            <a href="{{ url_for('admin_logs.ver_logs') }}" class="btn-clear">Limpar</a>
+        </form>
+
+        <!-- Tabela -->
+        <div class="logs-table-wrapper">
+            {% if logs %}
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>Data / Hora</th>
+                        <th>Usuário</th>
+                        <th>Aba</th>
+                        <th>Ação</th>
+                        <th>Detalhes</th>
+                        <th>Dispositivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in logs %}
+                    <tr>
+                        <td class="log-date">
+                            {{ entry.created_at.strftime('%d/%m/%Y') }}<br>
+                            <small>{{ entry.created_at.strftime('%H:%M:%S') }}</small>
+                        </td>
+                        <td class="log-user">
+                            {{ entry.usuario or 'Anônimo' }}
+                            {% if entry.papel %}
+                            <span class="log-papel">{{ entry.papel }}</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="log-aba">{{ entry.aba or '—' }}</span></td>
+                        <td class="log-acao">{{ entry.acao or '—' }}</td>
+                        <td class="log-detalhes">{{ entry.detalhes or '' }}</td>
+                        <td class="log-cliente">
+                            {% if entry.ip %}<span><i class="fas fa-network-wired" style="width:14px"></i> {{ entry.ip }}</span>{% endif %}
+                            {% if entry.so %}<span><i class="fas fa-desktop" style="width:14px"></i> {{ entry.so }}</span>{% endif %}
+                            {% if entry.navegador %}<span><i class="fas fa-globe" style="width:14px"></i> {{ entry.navegador }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Paginação -->
+            {% if paginacao.pages > 1 %}
+            <div class="pagination">
+                <a href="{{ url_for('admin_logs.ver_logs', page=paginacao.prev_num, aba=q_aba, usuario=q_usuario, acao=q_acao) }}"
+                   class="page-btn {{ 'disabled' if not paginacao.has_prev else '' }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+
+                {% for p in paginacao.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                    {% if p %}
+                    <a href="{{ url_for('admin_logs.ver_logs', page=p, aba=q_aba, usuario=q_usuario, acao=q_acao) }}"
+                       class="page-btn {{ 'active' if p == paginacao.page else '' }}">{{ p }}</a>
+                    {% else %}
+                    <span class="page-btn disabled">…</span>
+                    {% endif %}
+                {% endfor %}
+
+                <a href="{{ url_for('admin_logs.ver_logs', page=paginacao.next_num, aba=q_aba, usuario=q_usuario, acao=q_acao) }}"
+                   class="page-btn {{ 'disabled' if not paginacao.has_next else '' }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-logs">
+                <i class="fas fa-clipboard-list"></i>
+                <p>Nenhum log encontrado{% if q_aba or q_usuario or q_acao %} para os filtros aplicados{% endif %}.</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    {% include '_footer.html' %}
+</body>
+</html>

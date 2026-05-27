@@ -43,26 +43,49 @@ def _parse_browser(ua: str) -> str:
     return 'Navegador desconhecido'
 
 
-def _info_cliente() -> str:
+
+def _parse_cliente_parts():
     try:
         from flask import request as req
         ip = req.headers.get('X-Forwarded-For', req.remote_addr) or '?'
-        ip = ip.split(',')[0].strip()   # proxy chains → pega o IP de origem
+        ip = ip.split(',')[0].strip()
         ua = req.headers.get('User-Agent', '')
-        so = _parse_os(ua)
-        browser = _parse_browser(ua)
-        return f'{ip} | {so} | {browser}'
+        return ip, _parse_os(ua), _parse_browser(ua)
     except RuntimeError:
-        return ''
+        return None, None, None
 
 
 def log(user, aba: str, acao: str, detalhes: str = ''):
     nome = _nome_usuario(user)
-    cliente = _info_cliente()
+    ip, so, navegador = _parse_cliente_parts()
+    cliente_str = f'{ip} | {so} | {navegador}' if ip else ''
+
     partes = [f'[AUDIT] {nome}', aba, acao]
     msg = ' | '.join(partes)
     if detalhes:
         msg += f' — {detalhes}'
-    if cliente:
-        msg += f'  [{cliente}]'
+    if cliente_str:
+        msg += f'  [{cliente_str}]'
     logger.info(msg)
+
+    try:
+        from app.models import LogAudit, db
+        papel = None
+        usuario_nome = None
+        if user:
+            usuario_nome = user.username
+            papel = 'Administrador' if user.is_admin else (user.nome_papel or None)
+        entry = LogAudit(
+            usuario=usuario_nome,
+            papel=papel,
+            ip=ip,
+            so=so,
+            navegador=navegador,
+            aba=aba,
+            acao=acao,
+            detalhes=detalhes or None,
+        )
+        db.session.add(entry)
+        db.session.commit()
+    except Exception:
+        pass

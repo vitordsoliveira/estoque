@@ -48,6 +48,7 @@ def create_app():
         from app.routes.tipo import tipo
         from app.routes.main import main
         from app.routes.recebimento import recebimento
+        from app.routes.admin_logs import admin_logs
 
         app.register_blueprint(auth)
         app.register_blueprint(balanco)
@@ -63,5 +64,6 @@ def create_app():
         app.register_blueprint(tipo)
         app.register_blueprint(marca)
         app.register_blueprint(recebimento)
+        app.register_blueprint(admin_logs)
 
     return app

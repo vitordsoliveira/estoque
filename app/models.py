@@ -272,6 +272,20 @@ class LoteRecebimento(db.Model):
         return (self.status or '') == 'aguardando'
 
 
+class LogAudit(db.Model):
+    __tablename__ = 'log_audit'
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    usuario = Column(String(150), nullable=True)
+    papel = Column(String(100), nullable=True)
+    ip = Column(String(60), nullable=True)
+    so = Column(String(60), nullable=True)
+    navegador = Column(String(80), nullable=True)
+    aba = Column(String(100), nullable=True)
+    acao = Column(String(150), nullable=True)
+    detalhes = Column(Text, nullable=True)
+
+
 class Patrimonio(db.Model):
     __tablename__ = 'patrimonio'
     id = Column(Integer, primary_key=True)
