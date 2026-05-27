@@ -341,10 +341,16 @@
                                 <option value="{{ status }}">{{ status }}</option>
                                 {% endfor %}
                             </select>
+                            <small id="hint-status" class="form-helper" style="display:none; color:#1d4ed8; margin-top:4px;">
+                                <i class="fas fa-lock" style="font-size:0.75rem;"></i> Definido pelo responsável
+                            </small>
                         </div>
                         <div class="form-group">
-                            <label for="valor_compra">Valor de compra (R$)</label>
+                            <label for="valor_compra">Valor de compra (R$) <span id="label-preco-opcional" style="font-weight:400; color:#94a3b8; display:none;">(sugerido pelo SKU)</span></label>
                             <input type="text" inputmode="decimal" id="valor_compra" name="valor_compra" placeholder="Ex: 2599,90">
+                            <small id="hint-preco-sku" class="form-helper" style="display:none; margin-top:4px; color:#059669;">
+                                <i class="fas fa-circle-check" style="font-size:0.75rem;"></i> Preenchido com o preço do produto cadastrado. Pode alterar.
+                            </small>
                         </div>
                     </div>
 
@@ -423,6 +429,9 @@
                                 <option value="{{ status }}">{{ status }}</option>
                                 {% endfor %}
                             </select>
+                            <small id="hint-status-editar" class="form-helper" style="display:none; color:#1d4ed8; margin-top:4px;">
+                                <i class="fas fa-lock" style="font-size:0.75rem;"></i> Definido pelo responsável — remova o vínculo para liberar
+                            </small>
                         </div>
                         <div class="form-group">
                             <label for="valor_compra_editar">Valor de compra (R$)</label>
@@ -498,10 +507,50 @@
 
                     $('#sku_id_editar').val(data.sku_id ? String(data.sku_id) : '').trigger('change');
                     $('#user_id_editar').val(data.user_id ? String(data.user_id) : '').trigger('change');
+
+                    // Aplica lógica de status após carregar os dados
+                    aplicarStatusPorResponsavel('#user_id_editar', '#status_editar', '#hint-status-editar');
+                    // Restaura o status real vindo do servidor (a função pode ter sobrescrito)
+                    document.getElementById('status_editar').value = data.status || 'Disponível';
+
                     formEditarPatrimonio.action = `/patrimonios/editar/${id}`;
                     modalEditarPatrimonio.classList.add('active');
                 })
                 .catch(err => console.error('Erro ao buscar patrimônio:', err));
+        }
+
+        // ── Status automático por responsável ─────────────────────────────────
+        function aplicarStatusPorResponsavel(selectUserId, selectStatus, hintEl) {
+            var temUsuario = !!$(selectUserId).val();
+            var $status = $(selectStatus);
+            var $hint   = $(hintEl);
+
+            if (temUsuario) {
+                $status.val('Em Uso');
+                $status.css({ 'pointer-events': 'none', 'opacity': '0.6' });
+                $hint.show();
+            } else {
+                $status.css({ 'pointer-events': '', 'opacity': '' });
+                // Só reseta para Disponível se estava Em Uso (evita sobrescrever estados manuais)
+                if ($status.val() === 'Em Uso') $status.val('Disponível');
+                $hint.hide();
+            }
+        }
+
+        // ── Preço sugerido pelo SKU ────────────────────────────────────────────
+        function buscarPrecoSKU(skuId, inputValor, hintEl, labelOpcionalEl) {
+            if (!skuId) { $(hintEl).hide(); if (labelOpcionalEl) $(labelOpcionalEl).hide(); return; }
+            fetch('/patrimonios/preco-sku/' + skuId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    var $input = $(inputValor);
+                    if (data.preco && !$input.val()) {
+                        $input.val(String(data.preco).replace('.', ','));
+                        $(hintEl).show();
+                        if (labelOpcionalEl) $(labelOpcionalEl).show();
+                    }
+                })
+                .catch(function () {});
         }
 
         $(document).ready(function () {
@@ -523,6 +572,21 @@
             $('#user_id_editar').select2({
                 dropdownParent: $('#modal-editar-patrimonio'),
                 placeholder: 'Selecione um responsável (opcional)'
+            });
+
+            // Watcher: responsável → status (cadastro)
+            $('#user_id').on('change', function () {
+                aplicarStatusPorResponsavel('#user_id', '#status', '#hint-status');
+            });
+
+            // Watcher: responsável → status (editar)
+            $('#user_id_editar').on('change', function () {
+                aplicarStatusPorResponsavel('#user_id_editar', '#status_editar', '#hint-status-editar');
+            });
+
+            // Watcher: SKU → preço sugerido (cadastro)
+            $('#sku_id').on('change', function () {
+                buscarPrecoSKU($('#sku_id').val(), '#valor_compra', '#hint-preco-sku', '#label-preco-opcional');
             });
         });
     </script>

@@ -271,6 +271,21 @@ def deletar_patrimonio(id):
     return redirecionar_para_origem()
 
 
+@patrimonios.route('/preco-sku/<int:sku_id>')
+@admin_required
+def preco_sku(sku_id):
+    from app.models import Produto
+    produto = (
+        Produto.query
+        .filter_by(sku_id=sku_id, ativo=True)
+        .order_by(Produto.updated_at.desc())
+        .first()
+    )
+    if not produto or not produto.preco:
+        return jsonify({'preco': None})
+    return jsonify({'preco': float(produto.preco)})
+
+
 @patrimonios.route('/get/<int:id>')
 @admin_required
 def get_patrimonio(id):

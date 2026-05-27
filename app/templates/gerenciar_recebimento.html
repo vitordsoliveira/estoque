@@ -22,11 +22,81 @@
             border-radius: 22px;
             border: 1px solid rgba(148, 163, 184, 0.18);
             box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
-            padding: 24px;
+            padding: 28px;
             display: grid;
-            gap: 16px;
+            gap: 18px;
         }
 
+        .receb-card h3 { margin: 0; color: var(--text-main); }
+        .receb-card > p { color: #52637a; line-height: 1.6; margin: 0; }
+
+        /* ── Campos de formulário ─────────────────────────────── */
+        .scan-form,
+        .confirm-form,
+        .delegate-form { display: grid; gap: 16px; }
+
+        .scan-form label,
+        .confirm-form label,
+        .delegate-form label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .scan-form textarea,
+        .confirm-form input,
+        .confirm-form select,
+        .confirm-form textarea,
+        .delegate-form input,
+        .delegate-form select,
+        .delegate-form textarea {
+            width: 100%;
+            border: 1.5px solid #d8e1eb;
+            border-radius: 14px;
+            padding: 13px 16px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background: #f8fafc;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .scan-form textarea:focus,
+        .confirm-form input:focus,
+        .confirm-form select:focus,
+        .confirm-form textarea:focus,
+        .delegate-form input:focus,
+        .delegate-form select:focus,
+        .delegate-form textarea:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
+            background: #ffffff;
+        }
+
+        .scan-form textarea {
+            min-height: 68px;
+            resize: none;
+        }
+
+        .delegate-form textarea {
+            min-height: 88px;
+            resize: vertical;
+        }
+
+        /* grade 2 colunas nos campos menores */
+        .form-field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        /* ── Lote rows ────────────────────────────────────────── */
         .lote-row {
             display: grid;
             gap: 12px;
@@ -47,7 +117,7 @@
 
         .lote-meta {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
         }
 
@@ -61,20 +131,63 @@
             display: block;
             font-size: 0.72rem;
             color: var(--text-muted);
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
         }
 
         .lote-meta div strong { font-size: 0.9rem; color: var(--text-main); }
 
-        .lote-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .lote-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
+        /* QR Code inline no lote */
+        .lote-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .lote-info { flex: 1; display: grid; gap: 12px; min-width: 0; }
+
+        .lote-qr-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .lote-qr-img {
+            width: 110px;
+            height: 110px;
+            display: block;
+        }
+
+        .lote-qr-code {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-align: center;
+            word-break: break-all;
+            max-width: 110px;
+        }
+
+        @media (max-width: 520px) {
+            .lote-layout { flex-direction: column; }
+            .lote-qr-block { width: 100%; flex-direction: row; }
+            .lote-qr-img { width: 80px; height: 80px; }
+        }
+
+        /* ── Status badges ────────────────────────────────────── */
         .status-lote {
             display: inline-flex;
             align-items: center;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 999px;
             font-size: 0.76rem;
             font-weight: 700;
@@ -84,17 +197,28 @@
         .status-lote.confirmado { background: #ecfdf5; color: #047857; }
         .status-lote.cancelado  { background: #f1f5f9; color: #475569; }
 
+        /* ── Card de lote identificado ────────────────────────── */
         .highlight-lote {
             border: 2px solid #0f766e;
-            background: linear-gradient(135deg, #f0fdfa 0%, #e6f7ff 100%);
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecf9ff 100%);
         }
 
-        .confirm-form { display: grid; gap: 12px; }
-        .confirm-form label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
-        .confirm-form input { width: 100%; }
+        /* ── Eyebrow ──────────────────────────────────────────── */
+        .eyebrow {
+            display: inline-block;
+            color: #0f766e;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
 
-        .scan-form { display: grid; gap: 12px; }
         .scan-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        @media (max-width: 600px) {
+            .receb-card { padding: 20px; }
+            .form-field-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 
@@ -232,44 +356,54 @@
                 {% if lotes_pendentes %}
                 {% for lote in lotes_pendentes %}
                 <div class="lote-row">
-                    <div class="lote-header">
-                        <div>
-                            <span class="status-lote aguardando">Aguardando</span>
-                            <h4 style="margin: 6px 0 2px;">{{ lote.codigo_lote }}</h4>
-                            <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">{{ lote.sku.codigo }} · {{ lote.sku.nome }}</p>
-                        </div>
-                        <div class="lote-actions">
-                            <a href="{{ url_for('recebimento.qrcode_lote_svg', id=lote.id) }}" target="_blank" class="btn-secondary" title="Ver QR Code">
-                                <i class="fas fa-qrcode"></i>
-                            </a>
-                            <a href="{{ url_for('recebimento.download_qrcode_lote', id=lote.id) }}" class="btn-secondary" title="Baixar QR Code">
-                                <i class="fas fa-download"></i>
-                            </a>
-                            <a href="{{ url_for('recebimento.gerenciar_recebimento', lote=lote.codigo_lote) }}" class="btn-secondary" title="Confirmar">
-                                <i class="fas fa-circle-check"></i>
-                            </a>
-                        </div>
-                    </div>
+                    <div class="lote-layout">
 
-                    <div class="lote-meta">
-                        <div><span>Qtd esperada</span><strong>{{ '%g'|format(lote.quantidade_esperada) }}</strong></div>
-                        <div><span>Criado em</span><strong>{{ lote.created_at.strftime('%d/%m/%Y') if lote.created_at else '-' }}</strong></div>
-                        {% if lote.data_prevista %}
-                        <div><span>Previsão</span><strong>{{ lote.data_prevista.strftime('%d/%m/%Y') }}</strong></div>
-                        {% endif %}
-                        {% if lote.preco_custo %}
-                        <div><span>Custo unit.</span><strong>R$ {{ '%.2f'|format(lote.preco_custo) }}</strong></div>
-                        {% endif %}
-                    </div>
+                        <!-- Informações do lote -->
+                        <div class="lote-info">
+                            <div class="lote-header">
+                                <div>
+                                    <span class="status-lote aguardando">Aguardando</span>
+                                    <h4 style="margin: 6px 0 2px;">{{ lote.codigo_lote }}</h4>
+                                    <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">{{ lote.sku.codigo }} · {{ lote.sku.nome }}</p>
+                                </div>
+                            </div>
 
-                    {% if current_user and current_user.can_assign_balanco %}
-                    <div class="lote-actions">
-                        <form action="{{ url_for('recebimento.cancelar_lote', id=lote.id) }}" method="POST"
-                              onsubmit="return confirm('Cancelar o lote {{ lote.codigo_lote }}?');">
-                            <button type="submit" class="btn-secondary"><i class="fas fa-ban"></i> Cancelar</button>
-                        </form>
+                            <div class="lote-meta">
+                                <div><span>Qtd esperada</span><strong>{{ '%g'|format(lote.quantidade_esperada) }}</strong></div>
+                                <div><span>Criado em</span><strong>{{ lote.created_at.strftime('%d/%m/%Y') if lote.created_at else '-' }}</strong></div>
+                                {% if lote.data_prevista %}
+                                <div><span>Previsão</span><strong>{{ lote.data_prevista.strftime('%d/%m/%Y') }}</strong></div>
+                                {% endif %}
+                                {% if lote.preco_custo %}
+                                <div><span>Custo unit.</span><strong>R$ {{ '%.2f'|format(lote.preco_custo) }}</strong></div>
+                                {% endif %}
+                            </div>
+
+                            <div class="lote-actions">
+                                <a href="{{ url_for('recebimento.gerenciar_recebimento', lote=lote.codigo_lote) }}" class="btn-primary" style="font-size: 0.85rem; padding: 8px 16px;">
+                                    <i class="fas fa-circle-check"></i> Confirmar chegada
+                                </a>
+                                {% if current_user and current_user.can_assign_balanco %}
+                                <form action="{{ url_for('recebimento.cancelar_lote', id=lote.id) }}" method="POST"
+                                      onsubmit="return confirm('Cancelar o lote {{ lote.codigo_lote }}?');">
+                                    <button type="submit" class="btn-secondary" style="font-size: 0.85rem; padding: 8px 16px;"><i class="fas fa-ban"></i> Cancelar</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- QR Code inline -->
+                        <div class="lote-qr-block">
+                            <img class="lote-qr-img"
+                                 src="{{ url_for('recebimento.qrcode_lote_svg', id=lote.id) }}"
+                                 alt="QR Code {{ lote.codigo_lote }}">
+                            <span class="lote-qr-code">{{ lote.codigo_lote }}</span>
+                            <a href="{{ url_for('recebimento.download_qrcode_lote', id=lote.id) }}" class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;">
+                                <i class="fas fa-download"></i> Baixar
+                            </a>
+                        </div>
+
                     </div>
-                    {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
@@ -292,22 +426,23 @@
                 </div>
 
                 <form action="{{ url_for('recebimento.cadastrar_lote') }}" method="POST" class="delegate-form">
-                    <div class="task-form-grid">
-                        <div>
-                            <label for="sku_id">SKU</label>
-                            <select id="sku_id" name="sku_id" required>
-                                <option value="">Selecione o produto</option>
-                                {% for sku in skus_disponiveis %}
-                                <option value="{{ sku.id }}">{{ sku.codigo }} · {{ sku.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div>
+                        <label for="sku_id">SKU</label>
+                        <select id="sku_id" name="sku_id" required>
+                            <option value="">Selecione o produto</option>
+                            {% for sku in skus_disponiveis %}
+                            <option value="{{ sku.id }}">{{ sku.codigo }} · {{ sku.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field-grid">
                         <div>
                             <label for="quantidade_esperada">Quantidade esperada</label>
                             <input type="text" inputmode="decimal" id="quantidade_esperada" name="quantidade_esperada" placeholder="Ex: 100" required>
                         </div>
                         <div>
-                            <label for="preco_custo">Preço de custo unitário (R$)</label>
+                            <label for="preco_custo">Custo unitário (R$)</label>
                             <input type="number" step="0.01" id="preco_custo" name="preco_custo" placeholder="Ex: 89.90">
                         </div>
                         <div>
@@ -321,7 +456,7 @@
                         <textarea id="observacoes" name="observacoes" placeholder="Ex: Pedido #4521, fornecedor XYZ, chegada pela manhã."></textarea>
                     </div>
 
-                    <div class="task-actions">
+                    <div class="lote-actions">
                         <button type="submit" class="btn-primary">
                             <i class="fas fa-paper-plane"></i>
                             Criar provisão de lote

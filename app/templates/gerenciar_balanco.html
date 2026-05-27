@@ -609,13 +609,15 @@
                             </div>
                         </div>
 
+                        <!-- Campos de destino — alternam conforme o tipo de operação -->
                         <div class="task-form-grid">
-                            <div>
-                                <label for="corredor_destino">Corredor de destino</label>
-                                <input type="text" id="corredor_destino" name="corredor_destino" placeholder="Ex: A1">
+                            <div id="group-corredor">
+                                <label id="label-corredor" for="corredor_destino">Área de estoque <span id="label-corredor-opt" style="font-weight:400; color:#94a3b8;">(opcional)</span></label>
+                                <input type="text" id="corredor_destino" name="corredor_destino" placeholder="Ex: Corredor A, Câmara fria, Recebimento">
+                                <p id="hint-corredor" style="margin: 6px 0 0; font-size: 0.8rem; color: var(--text-muted);">Apenas para referência — conferência não move saldo do estoque.</p>
                             </div>
-                            <div>
-                                <label for="prateleira_destino">Prateleira de destino</label>
+                            <div id="group-prateleira" style="display: none;">
+                                <label for="prateleira_destino">Prateleira de destino <span style="color:#dc2626;">*</span></label>
                                 <input type="text" id="prateleira_destino" name="prateleira_destino" placeholder="Ex: P3">
                             </div>
                         </div>
@@ -1008,6 +1010,42 @@
             if (e.ctrlKey || e.altKey || e.metaKey) return;
             if (e.key.length === 1) scanInput.focus();
         });
+    })();
+
+    // ── Alternância Conferência ↔ Endereçamento ──────────────────────────────
+    (function () {
+        var tipoSelect      = document.getElementById('tipo_operacao');
+        var labelCorredor   = document.getElementById('label-corredor');
+        var labelCorredorOpt= document.getElementById('label-corredor-opt');
+        var inputCorredor   = document.getElementById('corredor_destino');
+        var hintCorredor    = document.getElementById('hint-corredor');
+        var groupPrateleira = document.getElementById('group-prateleira');
+        var inputPrateleira = document.getElementById('prateleira_destino');
+
+        if (!tipoSelect || !inputCorredor) return;
+
+        function atualizar() {
+            var isEnd = tipoSelect.value === 'enderecamento';
+
+            if (isEnd) {
+                labelCorredor.childNodes[0].textContent = 'Corredor de destino ';
+                if (labelCorredorOpt) labelCorredorOpt.style.display = 'none';
+                inputCorredor.placeholder = 'Ex: A1';
+                if (hintCorredor) hintCorredor.style.display = 'none';
+                if (groupPrateleira) groupPrateleira.style.display = '';
+                if (inputPrateleira) inputPrateleira.disabled = false;
+            } else {
+                labelCorredor.childNodes[0].textContent = 'Área de estoque ';
+                if (labelCorredorOpt) labelCorredorOpt.style.display = '';
+                inputCorredor.placeholder = 'Ex: Corredor A, Câmara fria, Recebimento';
+                if (hintCorredor) hintCorredor.style.display = '';
+                if (groupPrateleira) groupPrateleira.style.display = 'none';
+                if (inputPrateleira) { inputPrateleira.disabled = true; inputPrateleira.value = ''; }
+            }
+        }
+
+        tipoSelect.addEventListener('change', atualizar);
+        atualizar();
     })();
     </script>
 </body>
