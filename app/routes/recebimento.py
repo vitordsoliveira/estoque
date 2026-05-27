@@ -5,6 +5,7 @@ import qrcode
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request, url_for
 from qrcode.image.svg import SvgPathImage
 
+from app.audit import log
 from app.auth import functional_permission_required, get_current_user, login_required
 from app.models import LoteRecebimento, Produto, Sku, db
 from app.number_utils import parse_decimal_input
@@ -135,6 +136,8 @@ def cadastrar_lote():
         )
         db.session.add(lote)
         db.session.commit()
+        log(current_user, 'Recebimento', 'Criou provisão de lote',
+            f'{lote.codigo_lote} | SKU {sku.codigo} | qtd {quantidade_esperada:g}')
         flash(f'Lote {lote.codigo_lote} criado — {quantidade_esperada:g} unidades de {sku.codigo} aguardando chegada.', 'success')
     except Exception as exc:
         db.session.rollback()
@@ -178,6 +181,8 @@ def confirmar_lote(id):
         lote.confirmado_em = datetime.utcnow()
         lote.preco_custo = float(preco_custo)
         db.session.commit()
+        log(current_user, 'Recebimento', 'Confirmou chegada de lote',
+            f'{lote.codigo_lote} | SKU {lote.sku.codigo} | {lote.quantidade_esperada:g} un. | R$ {preco_custo:.2f}/un.')
         flash(
             f'Lote {lote.codigo_lote} confirmado — {lote.quantidade_esperada:g} unidades de '
             f'{lote.sku.codigo} entradas em recebimento. Crie uma tarefa de endereçamento para levá-las à prateleira.',
@@ -204,8 +209,11 @@ def cancelar_lote(id):
         return _redirect()
 
     try:
+        current_user = get_current_user()
         lote.status = 'cancelado'
         db.session.commit()
+        log(current_user, 'Recebimento', 'Cancelou lote',
+            f'{lote.codigo_lote} | SKU {lote.sku.codigo}')
         flash(f'Lote {lote.codigo_lote} cancelado.', 'success')
     except Exception as exc:
         db.session.rollback()

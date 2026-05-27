@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import func
 
+from app.audit import log
 from app.auth import create_access_token, get_current_user, login_user, logout_user, resolve_safe_redirect_target
 from app.models import User
 
@@ -29,6 +30,8 @@ def login():
 
         user = buscar_usuario_por_email(email)
         if not user or not user.active or not user.check_password(password):
+            from app.audit import logger as audit_logger
+            audit_logger.warning(f'[AUDIT] Login falhou para e-mail: {email}')
             flash('E-mail ou senha inválidos.', 'danger')
             return render_template('login.html', next=next_target, email=email)
 
@@ -39,6 +42,7 @@ def login():
             if token:
                 session['access_token'] = token
 
+        log(user, 'Auth', 'Login realizado', f'IP {request.remote_addr}')
         flash('Login realizado com sucesso.', 'success')
         return redirect(next_target or url_for('main.index'))
 
@@ -47,6 +51,8 @@ def login():
 
 @auth.route('/logout', methods=['POST'])
 def logout():
+    user = get_current_user()
+    log(user, 'Auth', 'Logout')
     logout_user()
     flash('Sessão encerrada com sucesso.', 'success')
     return redirect(url_for('auth.login'))

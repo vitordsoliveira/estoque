@@ -1,11 +1,20 @@
+import logging
 import os
 from datetime import timedelta
+
+from dotenv import load_dotenv
 from flask import Flask
+
 from app.auth import register_auth_hooks
 from app.models import db
-from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
 
 def create_app():
     app = Flask(__name__)

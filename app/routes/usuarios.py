@@ -1,7 +1,8 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from sqlalchemy import func
 
-from app.auth import admin_required
+from app.audit import log
+from app.auth import admin_required, get_current_user
 from app.models import Departamento, Obra, PerfilFuncional, User, db
 
 usuarios = Blueprint('usuarios', __name__, url_prefix='/usuarios')
@@ -165,6 +166,8 @@ def cadastrar_usuario():
 
         db.session.add(novo_usuario)
         db.session.commit()
+        log(get_current_user(), 'Usuários', 'Cadastrou usuário',
+            f'{novo_usuario.username} ({novo_usuario.email}) | perfil {perfil_funcional.nome if perfil_funcional else "-"}')
         flash('Usuário cadastrado com sucesso.', 'success')
     except Exception as exc:
         db.session.rollback()
@@ -262,6 +265,8 @@ def editar_usuario(id):
             usuario.set_password(password)
 
         db.session.commit()
+        log(get_current_user(), 'Usuários', 'Editou usuário',
+            f'{usuario.username} ({usuario.email}) | ativo={usuario.active}')
         flash('Usuário atualizado com sucesso.', 'success')
     except Exception as exc:
         db.session.rollback()

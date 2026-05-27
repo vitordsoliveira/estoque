@@ -5,7 +5,8 @@ import unicodedata
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from sqlalchemy import func
 
-from app.auth import admin_required
+from app.audit import log
+from app.auth import admin_required, get_current_user
 from app.models import Patrimonio, Sku, User, db
 from app.number_utils import parse_decimal_input
 
@@ -179,6 +180,8 @@ def cadastrar_patrimonio():
         )
         db.session.add(patrimonio)
         db.session.commit()
+        log(get_current_user(), 'Patrimônios', 'Cadastrou patrimônio',
+            f'{patrimonio.codigo_patrimonio} | SKU {sku.codigo} | status {patrimonio.status}')
         flash('Patrimônio cadastrado com sucesso.', 'success')
     except ValueError as exc:
         db.session.rollback()
@@ -237,6 +240,9 @@ def editar_patrimonio(id):
         patrimonio.valor_compra = parse_decimal_input(request.form.get('valor_compra')) if request.form.get('valor_compra') else None
         patrimonio.observacoes = observacoes
         db.session.commit()
+        resp_nome = usuario_responsavel.username if usuario_responsavel else 'nenhum'
+        log(get_current_user(), 'Patrimônios', 'Editou patrimônio',
+            f'{patrimonio.codigo_patrimonio} | status {patrimonio.status} | responsável {resp_nome}')
         flash('Patrimônio atualizado com sucesso.', 'success')
     except ValueError as exc:
         db.session.rollback()
@@ -261,8 +267,10 @@ def deletar_patrimonio(id):
         return redirecionar_para_origem()
 
     try:
+        codigo = patrimonio.codigo_patrimonio
         db.session.delete(patrimonio)
         db.session.commit()
+        log(get_current_user(), 'Patrimônios', 'Removeu patrimônio', codigo)
         flash('Patrimônio removido com sucesso.', 'success')
     except Exception as exc:
         db.session.rollback()

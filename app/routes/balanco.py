@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
+from app.audit import log
 from app.auth import functional_permission_required, get_current_user, resolve_safe_redirect_target
 from app.models import Produto, Sku, TarefaBalanco, User, db
 from app.number_utils import parse_decimal_input
@@ -417,9 +418,10 @@ def cadastrar_tarefa_balanco():
         return construir_redirect_balanco(sku.id)
 
     try:
+        tarefa_titulo = titulo or criar_titulo_tarefa(sku, tipo_operacao, contexto)
         db.session.add(
             TarefaBalanco(
-                titulo=titulo or criar_titulo_tarefa(sku, tipo_operacao, contexto),
+                titulo=tarefa_titulo,
                 descricao=descricao,
                 contexto=contexto,
                 tipo_operacao=tipo_operacao,
@@ -434,6 +436,8 @@ def cadastrar_tarefa_balanco():
             )
         )
         db.session.commit()
+        log(current_user, 'Balanço', 'Delegou tarefa',
+            f'"{tarefa_titulo}" para {responsavel.username} | SKU {sku.codigo} | qtd {quantidade_esperada}')
         flash('Tarefa de balanço delegada com sucesso.', 'success')
     except Exception as exc:
         db.session.rollback()
@@ -490,6 +494,8 @@ def concluir_tarefa_balanco(id):
         tarefa.status = 'concluido'
         tarefa.concluido_em = datetime.utcnow()
         db.session.commit()
+        log(current_user, 'Balanço', 'Concluiu tarefa',
+            f'#{tarefa.id} "{tarefa.titulo}" | SKU {tarefa.sku.codigo} | realizado {quantidade_realizada}')
         flash('Tarefa concluída com sucesso.', 'success')
     except ValueError as exc:
         db.session.rollback()
@@ -522,6 +528,8 @@ def cancelar_tarefa_balanco(id):
         tarefa.status = 'cancelado'
         tarefa.observacoes_execucao = normalizar_texto(request.form.get('observacoes_execucao')) or tarefa.observacoes_execucao
         db.session.commit()
+        log(current_user, 'Balanço', 'Cancelou tarefa',
+            f'#{tarefa.id} "{tarefa.titulo}" | SKU {tarefa.sku.codigo}')
         flash('Tarefa cancelada com sucesso.', 'success')
     except Exception as exc:
         db.session.rollback()

@@ -1,9 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from datetime import datetime
+from urllib.parse import urlsplit
+
+from flask import Blueprint, jsonify, redirect, render_template, request, url_for, flash
+
+from app.audit import log
+from app.auth import get_current_user
 from app.models import db, Produto, Sku
 from app.number_utils import parse_decimal_input
-from datetime import datetime
-from flask import jsonify
-from urllib.parse import urlsplit
 
 produtos = Blueprint(
     'produtos',
@@ -61,6 +64,9 @@ def cadastrar_produto():
 
         db.session.add(novo_produto)
         db.session.commit()
+        sku_obj = db.session.get(Sku, int(sku_id))
+        log(get_current_user(), 'Produtos', 'Cadastrou produto',
+            f'SKU {sku_obj.codigo if sku_obj else sku_id} | qtd {quantidade} | R$ {preco:.2f}')
         flash('Produto adicionado ao estoque com sucesso!', 'success')
 
     except ValueError:
@@ -104,6 +110,9 @@ def editar_produto(id):
             produto.data_validade = data_validade
 
             db.session.commit()
+            sku_obj = db.session.get(Sku, int(sku_id))
+            log(get_current_user(), 'Produtos', 'Editou produto',
+                f'#{id} SKU {sku_obj.codigo if sku_obj else sku_id} | qtd {quantidade} | R$ {preco:.2f}')
             flash('Produto atualizado com sucesso!', 'success')
 
         except ValueError:
@@ -125,8 +134,10 @@ def deletar_produto(id):
         return redirecionar_para_origem()
     
     try:
+        sku_codigo = produto.sku.codigo if produto.sku else str(produto.sku_id)
         db.session.delete(produto)
         db.session.commit()
+        log(get_current_user(), 'Produtos', 'Removeu produto', f'#{id} SKU {sku_codigo}')
         flash('Produto deletado com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
