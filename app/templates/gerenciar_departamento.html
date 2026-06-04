@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Departamentos - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 420px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Departamentos</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Mantenha os departamentos disponíveis para vínculo com usuários.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-departamento"><i class="fas fa-plus"></i> Novo Departamento</button>
+        </div>
+
+        <section class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar departamento por nome..." data-table-search data-table-target="#departamento-table" data-empty-message="Nenhum departamento encontrado.">
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table class="estoque-table" id="departamento-table">
+                <thead>
+                    <tr>
+                        <th>Departamento</th>
+                        <th style="text-align: center;">Usuários Vinculados</th>
+                        <th style="width: 150px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in departamentos %}
+                    <tr data-searchable-row data-search-text="{{ item.nome }} {{ item.users|length }}">
+                        <td><strong>{{ item.nome }}</strong></td>
+                        <td style="text-align: center;">
+                            <span class="badge" style="background: #f1f5f9; color: #475569;">{{ item.users|length }}</span>
+                        </td>
+                        <td>
+                            <button class="btn-icon" title="Editar" data-id="{{ item.id }}" data-nome="{{ item.nome }}" onclick="abrirEditarDepartamento(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('departamento.deletar_departamento', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este departamento?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-departamento">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Departamento</h2>
+                <button class="btn-close" id="btn-close-departamento"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('departamento.cadastrar_departamento') }}" method="POST">
+                    <div class="form-group">
+                        <label for="nome">Nome do departamento</label>
+                        <input type="text" id="nome" name="nome" placeholder="Ex: Almoxarifado" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-departamento">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Departamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-editar-departamento">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Departamento</h2>
+                <button class="btn-close" id="btn-close-editar-departamento"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-editar-departamento" method="POST">
+                    <div class="form-group">
+                        <label for="nome-editar">Nome do departamento</label>
+                        <input type="text" id="nome-editar" name="nome" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-departamento">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Departamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
+    <script>
+        const btnNovoDepartamento = document.getElementById('btn-novo-departamento');
+        const modalDepartamento = document.getElementById('modal-departamento');
+        const btnCloseDepartamento = document.getElementById('btn-close-departamento');
+        const btnCancelarDepartamento = document.getElementById('btn-cancelar-departamento');
+        const modalEditarDepartamento = document.getElementById('modal-editar-departamento');
+        const btnCloseEditarDepartamento = document.getElementById('btn-close-editar-departamento');
+        const btnCancelarEditarDepartamento = document.getElementById('btn-cancelar-editar-departamento');
+        const formEditarDepartamento = document.getElementById('form-editar-departamento');
+
+        btnNovoDepartamento.addEventListener('click', () => modalDepartamento.classList.add('active'));
+
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        btnCloseDepartamento.addEventListener('click', () => fecharModal(modalDepartamento));
+        btnCancelarDepartamento.addEventListener('click', () => fecharModal(modalDepartamento));
+        btnCloseEditarDepartamento.addEventListener('click', () => fecharModal(modalEditarDepartamento));
+        btnCancelarEditarDepartamento.addEventListener('click', () => fecharModal(modalEditarDepartamento));
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modalDepartamento) fecharModal(modalDepartamento);
+            if (event.target === modalEditarDepartamento) fecharModal(modalEditarDepartamento);
+        });
+
+        function abrirEditarDepartamento(button) {
+            const id = button.getAttribute('data-id');
+            const nome = button.getAttribute('data-nome');
+            document.getElementById('nome-editar').value = nome || '';
+            formEditarDepartamento.action = `/departamento/editar/${id}`;
+            modalEditarDepartamento.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

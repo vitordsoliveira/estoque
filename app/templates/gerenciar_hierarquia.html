@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hierarquia Funcional - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            width: 100%;
+            max-width: 720px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .form-group textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .form-check-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0 0;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .form-check input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+
+        .permission-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .permission-pill.off {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .chain-card {
+            display: grid;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .modal-content {
+                max-width: calc(100% - 24px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h2>Hierarquia Funcional</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">O nome do perfil funcional vira o cargo disponível no cadastro de usuários, já com hierarquia e permissões prontas.</p>
+            </div>
+            <button class="btn-primary" id="btn-novo-perfil"><i class="fas fa-sitemap"></i> Novo Perfil</button>
+        </div>
+
+        <section class="kpi-section">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Perfis Funcionais</h3>
+                    <p>{{ totais.perfis }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-id-badge"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Executores de Balanço</h3>
+                    <p>{{ totais.executores }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-people-carry-box"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Delegadores</h3>
+                    <p>{{ totais.atribuidores }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-clipboard-list"></i></div>
+            </div>
+        </section>
+
+        <section class="table-container" style="margin-bottom: 24px;">
+            <div class="page-header" style="padding-bottom: 18px; margin-bottom: 0;">
+                <div>
+                    <h2 style="font-size: 1.1rem;">Perfis configurados</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">Cada perfil desta lista aparece como cargo no Select2 de usuários.</p>
+                </div>
+            </div>
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Perfil</th>
+                        <th>Nível</th>
+                        <th>Descrição</th>
+                        <th>Atribui</th>
+                        <th>Executa</th>
+                        <th>Valida</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for perfil in perfis %}
+                    <tr>
+                        <td><strong>{{ perfil.nome }}</strong></td>
+                        <td>{{ perfil.nivel_hierarquico }}</td>
+                        <td>{{ perfil.descricao or '-' }}</td>
+                        <td><span class="permission-pill {{ '' if perfil.pode_atribuir_balanco else 'off' }}">{{ 'Sim' if perfil.pode_atribuir_balanco else 'Não' }}</span></td>
+                        <td><span class="permission-pill {{ '' if perfil.pode_executar_balanco else 'off' }}">{{ 'Sim' if perfil.pode_executar_balanco else 'Não' }}</span></td>
+                        <td><span class="permission-pill {{ '' if perfil.pode_validar_balanco else 'off' }}">{{ 'Sim' if perfil.pode_validar_balanco else 'Não' }}</span></td>
+                        <td>
+                            <button
+                                type="button"
+                                class="btn-icon"
+                                title="Editar"
+                                data-id="{{ perfil.id }}"
+                                data-nome="{{ perfil.nome }}"
+                                data-descricao="{{ perfil.descricao or '' }}"
+                                data-nivel-hierarquico="{{ perfil.nivel_hierarquico }}"
+                                data-pode-atribuir-balanco="{{ 'true' if perfil.pode_atribuir_balanco else 'false' }}"
+                                data-pode-executar-balanco="{{ 'true' if perfil.pode_executar_balanco else 'false' }}"
+                                data-pode-validar-balanco="{{ 'true' if perfil.pode_validar_balanco else 'false' }}"
+                                onclick="abrirEditarPerfil(this)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form action="{{ url_for('hierarquia.deletar_perfil', id=perfil.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja remover este perfil funcional?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 24px;">Nenhum perfil funcional cadastrado ainda.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="table-container">
+            <div class="page-header" style="padding-bottom: 18px; margin-bottom: 0;">
+                <div>
+                    <h2 style="font-size: 1.1rem;">Cadeia operacional atual</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">Visão rápida de quem responde para quem e qual capacidade cada usuário carrega hoje.</p>
+                </div>
+                <a class="btn-secondary" href="{{ url_for('usuarios.gerenciar_usuarios') }}"><i class="fas fa-users"></i> Ajustar usuários</a>
+            </div>
+            <table class="estoque-table">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Papel funcional</th>
+                        <th>Gestor</th>
+                        <th>Departamento</th>
+                        <th>Operações de balanço</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>
+                            <div class="chain-card">
+                                <strong>{{ usuario.username }}</strong>
+                                <small>{{ usuario.email }}</small>
+                            </div>
+                        </td>
+                        <td>{{ usuario.nome_papel }}</td>
+                        <td>{{ usuario.gestor.username if usuario.gestor else '-' }}</td>
+                        <td>{{ usuario.departamento.nome if usuario.departamento else '-' }}</td>
+                        <td>
+                            <span class="permission-pill {{ '' if usuario.can_assign_balanco else 'off' }}">Delega</span>
+                            <span class="permission-pill {{ '' if usuario.can_execute_balanco else 'off' }}">Executa</span>
+                            <span class="permission-pill {{ '' if usuario.can_validate_balanco else 'off' }}">Valida</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 24px;">Nenhum usuário encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-perfil">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Perfil Funcional</h2>
+                <button class="btn-close" id="btn-close-perfil"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('hierarquia.cadastrar_perfil') }}" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nome">Nome do perfil</label>
+                            <input type="text" id="nome" name="nome" placeholder="Ex: Gerente de Produção" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nivel_hierarquico">Nível hierárquico</label>
+                            <input type="number" id="nivel_hierarquico" name="nivel_hierarquico" min="1" value="10" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descricao">Descrição operacional</label>
+                        <textarea id="descricao" name="descricao" placeholder="Explique quando esse perfil delega, executa ou apenas valida."></textarea>
+                    </div>
+
+                    <div class="form-check-grid">
+                        <label class="form-check">
+                            <input type="checkbox" id="pode_atribuir_balanco" name="pode_atribuir_balanco">
+                            <span>Pode delegar balanço</span>
+                        </label>
+                        <label class="form-check">
+                            <input type="checkbox" id="pode_executar_balanco" name="pode_executar_balanco" checked>
+                            <span>Pode executar balanço</span>
+                        </label>
+                        <label class="form-check">
+                            <input type="checkbox" id="pode_validar_balanco" name="pode_validar_balanco">
+                            <span>Pode validar resultados</span>
+                        </label>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-perfil">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar Perfil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-editar-perfil">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Perfil Funcional</h2>
+                <button class="btn-close" id="btn-close-editar-perfil"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-perfil" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nome_editar">Nome do perfil</label>
+                            <input type="text" id="nome_editar" name="nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nivel_hierarquico_editar">Nível hierárquico</label>
+                            <input type="number" id="nivel_hierarquico_editar" name="nivel_hierarquico" min="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descricao_editar">Descrição operacional</label>
+                        <textarea id="descricao_editar" name="descricao"></textarea>
+                    </div>
+
+                    <div class="form-check-grid">
+                        <label class="form-check">
+                            <input type="checkbox" id="pode_atribuir_balanco_editar" name="pode_atribuir_balanco">
+                            <span>Pode delegar balanço</span>
+                        </label>
+                        <label class="form-check">
+                            <input type="checkbox" id="pode_executar_balanco_editar" name="pode_executar_balanco">
+                            <span>Pode executar balanço</span>
+                        </label>
+                        <label class="form-check">
+                            <input type="checkbox" id="pode_validar_balanco_editar" name="pode_validar_balanco">
+                            <span>Pode validar resultados</span>
+                        </label>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-perfil">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar Perfil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include '_footer.html' %}
+    <script>
+        const btnNovoPerfil = document.getElementById('btn-novo-perfil');
+        const modalPerfil = document.getElementById('modal-perfil');
+        const btnClosePerfil = document.getElementById('btn-close-perfil');
+        const btnCancelarPerfil = document.getElementById('btn-cancelar-perfil');
+
+        const modalEditarPerfil = document.getElementById('modal-editar-perfil');
+        const btnCloseEditarPerfil = document.getElementById('btn-close-editar-perfil');
+        const btnCancelarEditarPerfil = document.getElementById('btn-cancelar-editar-perfil');
+        const formEditarPerfil = document.getElementById('form-editar-perfil');
+
+        btnNovoPerfil.addEventListener('click', () => modalPerfil.classList.add('active'));
+
+        const fecharModal = (modal) => modal.classList.remove('active');
+
+        btnClosePerfil.addEventListener('click', () => fecharModal(modalPerfil));
+        btnCancelarPerfil.addEventListener('click', () => fecharModal(modalPerfil));
+        btnCloseEditarPerfil.addEventListener('click', () => fecharModal(modalEditarPerfil));
+        btnCancelarEditarPerfil.addEventListener('click', () => fecharModal(modalEditarPerfil));
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modalPerfil) fecharModal(modalPerfil);
+            if (event.target === modalEditarPerfil) fecharModal(modalEditarPerfil);
+        });
+
+        function abrirEditarPerfil(button) {
+            const id = button.getAttribute('data-id');
+            document.getElementById('nome_editar').value = button.getAttribute('data-nome') || '';
+            document.getElementById('descricao_editar').value = button.getAttribute('data-descricao') || '';
+            document.getElementById('nivel_hierarquico_editar').value = button.getAttribute('data-nivel-hierarquico') || '1';
+            document.getElementById('pode_atribuir_balanco_editar').checked = button.getAttribute('data-pode-atribuir-balanco') === 'true';
+            document.getElementById('pode_executar_balanco_editar').checked = button.getAttribute('data-pode-executar-balanco') === 'true';
+            document.getElementById('pode_validar_balanco_editar').checked = button.getAttribute('data-pode-validar-balanco') === 'true';
+
+            formEditarPerfil.action = `/hierarquia/perfis/editar/${id}`;
+            modalEditarPerfil.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

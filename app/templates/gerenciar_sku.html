@@ -12,6 +12,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
     <!-- MODAL CSS -->
     <style>
         .modal-overlay {
@@ -100,7 +101,84 @@
             padding-top: 15px;
             border-top: 1px solid var(--border-color);
         }
+
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+
+        .qr-preview-shell {
+            display: grid;
+            gap: 18px;
+        }
+
+        .qr-preview-card {
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            border-radius: 20px;
+            background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+            border: 1px solid #dbe6f2;
+        }
+
+        .qr-preview-image {
+            width: min(100%, 280px);
+            background: var(--white);
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .qr-preview-meta {
+            display: grid;
+            gap: 10px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+
+        .qr-preview-meta span {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 700;
+        }
+
+        .qr-preview-meta strong {
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        .qr-preview-meta p {
+            color: #52637a;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .qr-preview-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-end;
+        }
     </style>
+
 </head>
 
 <body>
@@ -119,10 +197,10 @@
         <section class="toolbar">
             <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar por código ou nome do modelo...">
+                <input type="text" placeholder="Buscar por código, nome, marca, família ou tipo..." data-table-search data-table-target="#sku-table" data-filter-target="#filtro-marca" data-filter-key="filterBrand" data-empty-message="Nenhum SKU encontrado.">
             </div>
             <div class="filters">
-                <select name="filtro_marca">
+                <select name="filtro_marca" id="filtro-marca">
                     <option value="">Todas as Marcas</option>
                     {% for marca in marcas %}
                     <option value="{{ marca.id }}">{{ marca.nome }}</option>
@@ -132,7 +210,7 @@
         </section>
 
         <section class="table-container">
-            <table class="estoque-table">
+            <table class="estoque-table" id="sku-table">
                 <thead>
                     <tr>
                         <th>Cód. SKU</th>
@@ -145,7 +223,7 @@
                 </thead>
                 <tbody>
                     {% for sku in skus %}
-                    <tr>
+                    <tr data-searchable-row data-search-text="{{ sku.codigo }} {{ sku.nome }} {{ sku.marca.nome if sku.marca else '' }} {{ sku.familia.nome if sku.familia else '' }} {{ sku.tipo.nome if sku.tipo else '' }}" data-filter-brand="{{ sku.marca_id if sku.marca_id else '' }}">
                         <td><strong>{{ sku.codigo }}</strong></td>
                         <td>{{ sku.nome }}</td>
                         <td>{{ sku.marca.nome if sku.marca else '-' }}</td>
@@ -153,10 +231,13 @@
                             <small>{{ sku.familia.nome if sku.familia else '-' }}</small> /
                             <small>{{ sku.tipo.nome if sku.tipo else '-' }}</small>
                         </td>
-                        <td>{{ sku.peso if sku.peso else '0' }} kg</td>
+                        <td>{{ '%.3f'|format(sku.peso) if sku.peso else '0.000' }} kg</td>
                         <td>
-                            <button class="btn-icon" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon" title="Gerar QR Code" data-id="{{ sku.id }}" data-codigo="{{ sku.codigo }}" data-nome="{{ sku.nome }}" onclick="abrirQrSku(this)"><i class="fas fa-qrcode"></i></button>
+                            <button class="btn-icon" title="Editar" data-id="{{ sku.id }}" onclick="abrirEditarSku(this)"><i class="fas fa-edit"></i></button>
+                            <form action="{{ url_for('sku.deletar_sku', id=sku.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este SKU?');">
+                                <button type="submit" class="btn-icon text-danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -178,7 +259,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="codigo">Código do SKU (Único)</label>
-                            <input type="text" id="codigo" name="codigo" placeholder="Código único do item">
+                            <input type="text" id="codigo" name="codigo" placeholder="Gerado automaticamente com 8 dígitos" readonly>
                         </div>
                         <div class="form-group half">
                             <label for="marca_id">Marca</label>
@@ -220,7 +301,7 @@
                     <div class="form-row">
                         <div class="form-group half">
                             <label for="peso">Peso (Kg/g)</label>
-                            <input type="number" step="0.001" id="peso" name="peso" placeholder="Ex: 1.250">
+                            <input type="text" inputmode="decimal" id="peso" name="peso" placeholder="Ex: 100 para 100g ou 1,250">
                         </div>
                         <div class="form-group half">
                             <label for="valorPeso">Valor do Peso (R$)</label>
@@ -243,7 +324,132 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-editar-sku">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar SKU</h2>
+                <button class="btn-close" id="btn-close-editar-sku"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="form-editar-sku" method="POST">
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="codigo_editar">Código do SKU (Único)</label>
+                            <input type="text" id="codigo_editar" name="codigo" placeholder="Código do SKU" readonly>
+                        </div>
+                        <div class="form-group half">
+                            <label for="marca_id_editar">Marca</label>
+                            <select id="marca_id_editar" name="marca_id" style="width: 100%;">
+                                <option value=""></option>
+                                {% for marca in marcas %}
+                                <option value="{{ marca.id }}">{{ marca.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nome_editar">Nome Completo do Produto/Modelo</label>
+                        <input type="text" id="nome_editar" name="nome"
+                            placeholder="Ex: Monitor Dell 24 Polegadas P2422H" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="tipo_id_editar">Tipo</label>
+                            <select id="tipo_id_editar" name="tipo_id" style="width: 100%;" required>
+                                <option value=""></option>
+                                {% for tipo in tipos %}
+                                <option value="{{ tipo.id }}" data-familia-id="{{ tipo.familia.id }}"
+                                    data-familia-name="{{ tipo.familia.nome }}">{{ tipo.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="familia_nome_editar">Família</label>
+                            <input type="text" id="familia_nome_editar" name="familia_nome"
+                                placeholder="Preenchido automaticamente" readonly>
+                            <input type="hidden" id="familia_id_editar" name="familia_id">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="peso_editar">Peso (Kg/g)</label>
+                            <input type="text" inputmode="decimal" id="peso_editar" name="peso" placeholder="Ex: 100 para 100g ou 1,250">
+                        </div>
+                        <div class="form-group half">
+                            <label for="valorPeso_editar">Valor do Peso (R$)</label>
+                            <input type="number" step="0.01" id="valorPeso_editar" name="valorPeso" placeholder="Ex: 45.50">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="especificacao_nome_editar">Especificação Técnica</label>
+                        <input type="text" id="especificacao_nome_editar" name="especificacao_nome"
+                            placeholder="Digite a especificação (ex: 16GB RAM, 512GB SSD)">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-editar-sku">Cancelar</button>
+                        <button type="submit" class="btn-primary">Atualizar SKU</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-qrcode-sku">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>QR Code do SKU</h2>
+                <button class="btn-close" id="btn-close-qrcode-sku"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="qr-preview-shell">
+                    <div class="qr-preview-card">
+                        <img id="sku-qrcode-preview" class="qr-preview-image" src="" alt="QR Code do SKU">
+                    </div>
+
+                    <div class="qr-preview-meta">
+                        <div>
+                            <span>Código</span>
+                            <strong id="sku-qrcode-codigo">-</strong>
+                        </div>
+                        <div>
+                            <span>Modelo</span>
+                            <p id="sku-qrcode-nome">-</p>
+                        </div>
+                        <div>
+                            <span>Uso</span>
+                            <p>Este QR Code codifica o SKU em um payload estruturado para reaproveitamento em futuras leituras e rotinas de balanço.</p>
+                        </div>
+                    </div>
+
+                    <div class="qr-preview-actions">
+                        <a id="sku-qrcode-balance" class="btn-secondary" href="#">
+                            <i class="fas fa-boxes-stacked"></i>
+                            Abrir no balanço
+                        </a>
+                        <a id="sku-qrcode-open" class="btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-up-right-from-square"></i>
+                            Abrir SVG
+                        </a>
+                        <a id="sku-qrcode-download" class="btn-primary" href="#">
+                            <i class="fas fa-download"></i>
+                            Baixar QR Code
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% include '_footer.html' %}
+    <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
 
     <script>
         const btnNovoSku = document.getElementById('btn-novo-sku');
@@ -251,16 +457,102 @@
         const btnCloseSku = document.getElementById('btn-close-sku');
         const btnCancelarSku = document.getElementById('btn-cancelar-sku');
 
+        const modalEditarSku = document.getElementById('modal-editar-sku');
+        const btnCloseEditarSku = document.getElementById('btn-close-editar-sku');
+        const btnCancelarEditarSku = document.getElementById('btn-cancelar-editar-sku');
+        const formEditarSku = document.getElementById('form-editar-sku');
+        const codigoInput = document.getElementById('codigo');
+        const modalQrSku = document.getElementById('modal-qrcode-sku');
+        const btnCloseQrSku = document.getElementById('btn-close-qrcode-sku');
+        const qrPreview = document.getElementById('sku-qrcode-preview');
+        const qrCodigo = document.getElementById('sku-qrcode-codigo');
+        const qrNome = document.getElementById('sku-qrcode-nome');
+        const qrBalanceLink = document.getElementById('sku-qrcode-balance');
+        const qrOpenLink = document.getElementById('sku-qrcode-open');
+        const qrDownloadLink = document.getElementById('sku-qrcode-download');
+
         btnNovoSku.addEventListener('click', () => modalSku.classList.add('active'));
 
-        const fecharModal = () => modalSku.classList.remove('active');
+        const fecharModal = (modal) => modal.classList.remove('active');
 
-        btnCloseSku.addEventListener('click', fecharModal);
-        btnCancelarSku.addEventListener('click', fecharModal);
+        btnCloseSku.addEventListener('click', () => fecharModal(modalSku));
+        btnCancelarSku.addEventListener('click', () => fecharModal(modalSku));
+        
+        btnCloseEditarSku.addEventListener('click', () => fecharModal(modalEditarSku));
+        btnCancelarEditarSku.addEventListener('click', () => fecharModal(modalEditarSku));
+        btnCloseQrSku.addEventListener('click', () => fecharModal(modalQrSku));
 
         window.addEventListener('click', (e) => {
-            if (e.target === modalSku) fecharModal();
+            if (e.target === modalSku) fecharModal(modalSku);
+            if (e.target === modalEditarSku) fecharModal(modalEditarSku);
+            if (e.target === modalQrSku) fecharModal(modalQrSku);
         });
+
+        function abrirQrSku(button) {
+            const id = button.getAttribute('data-id');
+            const codigo = button.getAttribute('data-codigo') || '-';
+            const nome = button.getAttribute('data-nome') || '-';
+            const svgUrl = `/sku/qrcode/${id}/svg`;
+            const downloadUrl = `/sku/qrcode/${id}/download`;
+
+            qrPreview.src = svgUrl;
+            qrPreview.alt = `QR Code do SKU ${codigo}`;
+            qrCodigo.textContent = codigo;
+            qrNome.textContent = nome;
+            qrBalanceLink.href = `/balanco/gerenciar?sku_id=${id}`;
+            qrOpenLink.href = svgUrl;
+            qrDownloadLink.href = downloadUrl;
+
+            modalQrSku.classList.add('active');
+        }
+
+        function abrirEditarSku(button) {
+            const id = button.getAttribute('data-id');
+            
+            fetch(`/sku/get/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('codigo_editar').value = data.codigo;
+                    document.getElementById('nome_editar').value = data.nome;
+                    document.getElementById('peso_editar').value = data.peso || '';
+                    document.getElementById('valorPeso_editar').value = data.valorPeso || '';
+                    document.getElementById('especificacao_nome_editar').value = data.especificacao_nome || '';
+
+                    $('#marca_id_editar').val(data.marca_id ? String(data.marca_id) : '').trigger('change');
+                    $('#tipo_id_editar').val(data.tipo_id ? String(data.tipo_id) : '').trigger('change');
+
+                    if (!data.tipo_id) {
+                        document.getElementById('familia_nome_editar').value = data.familia_nome || '';
+                        document.getElementById('familia_id_editar').value = data.familia_id || '';
+                    }
+                    
+                    formEditarSku.action = `/sku/editar_sku/${id}`;
+                    fecharModal(modalSku);
+                    modalEditarSku.classList.add('active');
+                })
+                .catch(err => console.error('Erro ao buscar dados:', err));
+        }
+
+        function atualizarCodigoSku(familiaId) {
+            if (!familiaId) {
+                codigoInput.value = '';
+                return;
+            }
+
+            fetch(`/sku/gerar_codigo?family_id=${familiaId}`)
+                .then((resposta) => resposta.json().then((data) => ({ ok: resposta.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok) {
+                        throw new Error(data.error || 'Não foi possível gerar o código do SKU.');
+                    }
+
+                    codigoInput.value = data.codigo;
+                })
+                .catch((erro) => {
+                    codigoInput.value = '';
+                    console.error('Erro ao gerar código do SKU:', erro);
+                });
+        }
 
         $(document).ready(function () {
             $('#marca_id').select2({
@@ -284,6 +576,31 @@
 
                 familiaNomeInput.val(familiaName || '');
                 familiaIdInput.val(familiaId || '');
+                atualizarCodigoSku(familiaId);
+            });
+
+            // Para edição
+            $('#marca_id_editar').select2({
+                dropdownParent: $('#modal-editar-sku'),
+                placeholder: 'Selecione uma marca'
+            });
+
+            const tipoSelectEditar = $('#tipo_id_editar');
+            tipoSelectEditar.select2({
+                dropdownParent: $('#modal-editar-sku'),
+                placeholder: 'Selecione um tipo'
+            });
+
+            const familiaNomeInputEditar = $('#familia_nome_editar');
+            const familiaIdInputEditar = $('#familia_id_editar');
+
+            tipoSelectEditar.on('change', function () {
+                const selectedOption = $(this).find('option:selected');
+                const familiaId = selectedOption.data('familia-id');
+                const familiaName = selectedOption.data('familia-name');
+
+                familiaNomeInputEditar.val(familiaName || '');
+                familiaIdInputEditar.val(familiaId || '');
             });
         });
 

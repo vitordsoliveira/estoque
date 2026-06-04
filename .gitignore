@@ -1,14 +1,32 @@
-app/__pycache__/__init__.cpython-310.pyc
-app/__pycache__/extensions.cpython-310.pyc
-app/__pycache__/models.cpython-310.pyc
+# Ambiente virtual
+venv/
+.venv/
+env/
+
+# Variáveis de ambiente (contém senhas!)
 .env
-app/__pycache__/__init__.cpython-314.pyc
-.gitignore
-app/routes/__pycache__/familia.cpython-314.pyc
-app/routes/__pycache__/marca.cpython-314.pyc
-app/routes/__pycache__/sku.cpython-314.pyc
-.gitignore
-app/__pycache__/models.cpython-314.pyc
-app/routes/__pycache__/produtos.cpython-314.pyc
-app/routes/__pycache__/main.cpython-314.pyc
-app/routes/__pycache__/tipo.cpython-314.pyc
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Migrations compilados
+migrations/versions/__pycache__/
+
+# Distribuição / build
+dist/
+build/
+*.egg-info/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
