@@ -233,6 +233,7 @@
                         </td>
                         <td>{{ '%.3f'|format(sku.peso) if sku.peso else '0.000' }} kg</td>
                         <td>
+                            <button class="btn-icon" title="Ver detalhes" data-id="{{ sku.id }}" onclick="abrirDetalhesSku(this)"><i class="fas fa-eye"></i></button>
                             <button class="btn-icon" title="Gerar QR Code" data-id="{{ sku.id }}" data-codigo="{{ sku.codigo }}" data-nome="{{ sku.nome }}" onclick="abrirQrSku(this)"><i class="fas fa-qrcode"></i></button>
                             <button class="btn-icon" title="Editar" data-id="{{ sku.id }}" onclick="abrirEditarSku(this)"><i class="fas fa-edit"></i></button>
                             <form action="{{ url_for('sku.deletar_sku', id=sku.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este SKU?');">
@@ -245,6 +246,19 @@
             </table>
         </section>
     </main>
+
+    <!-- Modal Detalhes SKU -->
+    <div class="modal-overlay" id="modal-detalhes-sku">
+        <div class="modal-content" style="max-width:800px; max-height:90vh; overflow-y:auto;">
+            <div class="modal-header">
+                <h2 id="sku-det-titulo">Detalhes do SKU</h2>
+                <button class="btn-close" onclick="fecharModal(document.getElementById('modal-detalhes-sku'))"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="sku-det-corpo">
+                <p style="color:var(--text-muted);text-align:center;padding:20px;">Carregando...</p>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="modal-sku">
         <div class="modal-content">
@@ -470,6 +484,149 @@
         const qrBalanceLink = document.getElementById('sku-qrcode-balance');
         const qrOpenLink = document.getElementById('sku-qrcode-open');
         const qrDownloadLink = document.getElementById('sku-qrcode-download');
+
+        function abrirDetalhesSku(btn) {
+            const id = btn.getAttribute('data-id');
+            const modal = document.getElementById('modal-detalhes-sku');
+            const corpo = document.getElementById('sku-det-corpo');
+            corpo.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Carregando...</p>';
+            modal.classList.add('active');
+
+            fetch(`/sku/detalhes/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    const s = data.sku;
+                    const fmt = v => v != null ? 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '-';
+                    const fmtQtd = v => Number(v).toLocaleString('pt-BR', {maximumFractionDigits:3});
+
+                    let html = `
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+                        <div style="grid-column:span 2;"><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Código</small><p style="margin-top:4px;font-weight:700;font-size:1.1rem;">${s.codigo}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Cadastrado em</small><p style="margin-top:4px;">${s.criado_em}</p></div>
+                        <div style="grid-column:span 3;"><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Nome</small><p style="margin-top:4px;font-weight:600;">${s.nome}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Família</small><p style="margin-top:4px;">${s.familia}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Tipo</small><p style="margin-top:4px;">${s.tipo}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Marca</small><p style="margin-top:4px;">${s.marca}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Especificação</small><p style="margin-top:4px;">${s.especificacao}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Peso Base</small><p style="margin-top:4px;">${s.peso != null ? s.peso + ' kg' : '-'}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Valor/Peso</small><p style="margin-top:4px;">${fmt(s.valor_peso)}</p></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+                        <div style="background:#f0f9ff;border-radius:8px;padding:14px;text-align:center;">
+                            <small style="color:#0369a1;font-weight:600;text-transform:uppercase;font-size:0.72rem;">Total em Estoque</small>
+                            <p style="margin-top:6px;font-weight:700;font-size:1.4rem;color:#0369a1;">${fmtQtd(s.total_estoque)}</p>
+                        </div>
+                        <div style="background:#f0fdf4;border-radius:8px;padding:14px;text-align:center;">
+                            <small style="color:#166534;font-weight:600;text-transform:uppercase;font-size:0.72rem;">Valor em Estoque</small>
+                            <p style="margin-top:6px;font-weight:700;font-size:1.4rem;color:#166534;">${fmt(s.valor_estoque)}</p>
+                        </div>
+                        <div style="background:#fdf4ff;border-radius:8px;padding:14px;text-align:center;">
+                            <small style="color:#7e22ce;font-weight:600;text-transform:uppercase;font-size:0.72rem;">Patrimônios</small>
+                            <p style="margin-top:6px;font-weight:700;font-size:1.4rem;color:#7e22ce;">${s.total_patrimonios}</p>
+                        </div>
+                    </div>`;
+
+                    if (data.estoque.length) {
+                        html += `<h4 style="font-size:0.9rem;color:var(--text-muted);margin:16px 0 8px;border-top:1px solid var(--border-color);padding-top:14px;">Registros em Estoque</h4>
+                        <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                            <thead><tr style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;">
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Qtd.</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Preço</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Localização</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Validade</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Cadastrado</th>
+                            </tr></thead><tbody>`;
+                        data.estoque.forEach(e => {
+                            html += `<tr>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);font-weight:700;">${fmtQtd(e.quantidade)}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${fmt(e.preco)}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${e.corredor} / ${e.prateleira}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${e.data_validade}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${e.criado_em}</td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    }
+
+                    if (data.patrimonios.length) {
+                        html += `<h4 style="font-size:0.9rem;color:var(--text-muted);margin:16px 0 8px;border-top:1px solid var(--border-color);padding-top:14px;">Patrimônios Vinculados</h4>
+                        <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                            <thead><tr style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;">
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Código</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Série</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Status</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Responsável</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Valor</th>
+                            </tr></thead><tbody>`;
+                        data.patrimonios.forEach(p => {
+                            html += `<tr>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);font-weight:700;">${p.codigo}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${p.numero_serie}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${p.status}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${p.responsavel}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${fmt(p.valor_compra)}</td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    }
+
+                    if (data.lotes.length) {
+                        html += `<h4 style="font-size:0.9rem;color:var(--text-muted);margin:16px 0 8px;border-top:1px solid var(--border-color);padding-top:14px;">Lotes de Recebimento</h4>
+                        <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                            <thead><tr style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;">
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Lote</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Status</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Qtd.</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Custo/un.</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Criado</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Confirmado</th>
+                            </tr></thead><tbody>`;
+                        data.lotes.forEach(l => {
+                            html += `<tr>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);font-weight:600;">${l.codigo}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${l.status}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${fmtQtd(l.quantidade)}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${l.preco_custo != null ? fmt(l.preco_custo) : '-'}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${l.criado_em}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${l.confirmado_em}</td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    }
+
+                    if (data.tarefas.length) {
+                        html += `<h4 style="font-size:0.9rem;color:var(--text-muted);margin:16px 0 8px;border-top:1px solid var(--border-color);padding-top:14px;">Tarefas de Balanço</h4>
+                        <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                            <thead><tr style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;">
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Título</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Tipo</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Status</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Responsável</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Criado</th>
+                            </tr></thead><tbody>`;
+                        data.tarefas.forEach(t => {
+                            const cor = t.status === 'Concluído' ? '#166534' : t.status === 'Pendente' ? '#856404' : '#6c757d';
+                            html += `<tr>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${t.titulo}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${t.tipo}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);color:${cor};font-weight:600;">${t.status}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${t.responsavel}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${t.criado_em}</td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    }
+
+                    document.getElementById('sku-det-titulo').textContent = `${s.codigo} · ${s.nome}`;
+                    corpo.innerHTML = html;
+                })
+                .catch(() => { corpo.innerHTML = '<p style="color:var(--danger-color);text-align:center;padding:20px;">Erro ao carregar detalhes.</p>'; });
+        }
+
+        window.addEventListener('click', e => {
+            if (e.target === document.getElementById('modal-detalhes-sku'))
+                fecharModal(document.getElementById('modal-detalhes-sku'));
+        });
 
         btnNovoSku.addEventListener('click', () => modalSku.classList.add('active'));
 

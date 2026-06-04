@@ -90,6 +90,7 @@ def index():
     ).group_by(Patrimonio.status).all()
     pat_status_labels = [r[0] or 'Sem status' for r in pat_rows]
     pat_status_qtd = [r[1] for r in pat_rows]
+    pat_total = sum(pat_status_qtd)
 
     return render_template(
         'relatorios.html',
@@ -106,4 +107,5 @@ def index():
         top_skus=top_skus,
         pat_status_labels=json.dumps(pat_status_labels),
         pat_status_qtd=json.dumps(pat_status_qtd),
+        pat_total=pat_total,
     )

@@ -294,6 +294,57 @@ def preco_sku(sku_id):
     return jsonify({'preco': float(produto.preco)})
 
 
+@patrimonios.route('/detalhes/<int:id>')
+@admin_required
+def detalhes_patrimonio(id):
+    from app.models import LogAudit
+    patrimonio = db.session.get(Patrimonio, id)
+    if not patrimonio:
+        return jsonify({'error': 'Patrimônio não encontrado'}), 404
+
+    sku = patrimonio.sku
+    responsavel = patrimonio.usuario_responsavel
+
+    logs = (
+        LogAudit.query
+        .filter(LogAudit.aba == 'Patrimônios', LogAudit.detalhes.like(f'%{patrimonio.codigo_patrimonio}%'))
+        .order_by(LogAudit.created_at.desc())
+        .limit(15).all()
+    )
+
+    return jsonify({
+        'patrimonio': {
+            'id': patrimonio.id,
+            'codigo': patrimonio.codigo_patrimonio,
+            'numero_serie': patrimonio.numero_serie or '-',
+            'status': patrimonio.status or '-',
+            'sku_codigo': sku.codigo if sku else '-',
+            'sku_nome': sku.nome if sku else '-',
+            'familia': sku.familia.nome if sku and sku.familia else '-',
+            'marca': sku.marca.nome if sku and sku.marca else '-',
+            'responsavel': responsavel.username if responsavel else '-',
+            'responsavel_papel': responsavel.nome_papel if responsavel else '-',
+            'responsavel_email': responsavel.email if responsavel else '-',
+            'valor_compra': float(patrimonio.valor_compra) if patrimonio.valor_compra else None,
+            'data_compra': patrimonio.data_compra.strftime('%d/%m/%Y') if patrimonio.data_compra else '-',
+            'fim_garantia': patrimonio.fim_garantia.strftime('%d/%m/%Y') if patrimonio.fim_garantia else '-',
+            'observacoes': patrimonio.observacoes or '-',
+            'criado_em': patrimonio.created_at.strftime('%d/%m/%Y %H:%M') if patrimonio.created_at else '-',
+            'atualizado_em': patrimonio.updated_at.strftime('%d/%m/%Y %H:%M') if patrimonio.updated_at else '-',
+        },
+        'historico': [
+            {
+                'data': l.created_at.strftime('%d/%m/%Y %H:%M') if l.created_at else '-',
+                'usuario': l.usuario or '-',
+                'papel': l.papel or '-',
+                'acao': l.acao or '-',
+                'detalhes': l.detalhes or '-',
+            }
+            for l in logs
+        ],
+    })
+
+
 @patrimonios.route('/get/<int:id>')
 @admin_required
 def get_patrimonio(id):

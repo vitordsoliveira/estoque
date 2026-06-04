@@ -307,7 +307,7 @@
                 {% endif %}
 
                 <h3 style="margin-top: 24px;"><i class="fas fa-tag"></i> Patrimônios por Status</h3>
-                {% if pat_status_qtd | sum > 0 %}
+                {% if pat_total > 0 %}
                 <div class="chart-wrapper-sm">
                     <canvas id="chart-patrimonios"></canvas>
                 </div>

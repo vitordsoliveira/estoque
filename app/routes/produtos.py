@@ -148,10 +148,10 @@ def deletar_produto(id):
 @produtos.route('/get/<int:id>')
 def get_produto(id):
     produto = Produto.query.get(id)
-    
+
     if not produto:
         return jsonify({'error': 'Produto não encontrado'}), 404
-    
+
     return jsonify({
         'id': produto.id,
         'sku_id': produto.sku_id,
@@ -160,4 +160,67 @@ def get_produto(id):
         'corredor': produto.corredor,
         'prateleira': produto.prateleira,
         'data_validade': produto.data_validade.strftime('%Y-%m-%d') if produto.data_validade else ''
+    })
+
+
+@produtos.route('/detalhes/<int:id>')
+def detalhes_produto(id):
+    from app.models import TarefaBalanco, LoteRecebimento
+    produto = db.session.get(Produto, id)
+    if not produto:
+        return jsonify({'error': 'Produto não encontrado'}), 404
+
+    sku = produto.sku
+    tarefas = (
+        TarefaBalanco.query.filter_by(sku_id=produto.sku_id)
+        .order_by(TarefaBalanco.created_at.desc())
+        .limit(10).all()
+    )
+    lotes = (
+        LoteRecebimento.query.filter_by(sku_id=produto.sku_id)
+        .order_by(LoteRecebimento.created_at.desc())
+        .limit(10).all()
+    )
+
+    return jsonify({
+        'produto': {
+            'id': produto.id,
+            'sku_codigo': sku.codigo if sku else '-',
+            'sku_nome': sku.nome if sku else '-',
+            'familia': sku.familia.nome if sku and sku.familia else '-',
+            'tipo': sku.tipo.nome if sku and sku.tipo else '-',
+            'marca': sku.marca.nome if sku and sku.marca else '-',
+            'quantidade': float(produto.quantidade or 0),
+            'preco': float(produto.preco or 0),
+            'corredor': produto.corredor or '-',
+            'prateleira': produto.prateleira or '-',
+            'data_validade': produto.data_validade.strftime('%d/%m/%Y') if produto.data_validade else '-',
+            'criado_em': produto.created_at.strftime('%d/%m/%Y %H:%M') if produto.created_at else '-',
+            'atualizado_em': produto.updated_at.strftime('%d/%m/%Y %H:%M') if produto.updated_at else '-',
+        },
+        'tarefas': [
+            {
+                'titulo': t.titulo,
+                'tipo': t.tipo_operacao_label,
+                'status': t.status_label,
+                'responsavel': t.responsavel.username if t.responsavel else '-',
+                'criado_em': t.created_at.strftime('%d/%m/%Y') if t.created_at else '-',
+                'concluido_em': t.concluido_em.strftime('%d/%m/%Y') if t.concluido_em else '-',
+                'qtd_esperada': float(t.quantidade_esperada or 0),
+                'qtd_realizada': float(t.quantidade_realizada or 0) if t.quantidade_realizada is not None else None,
+            }
+            for t in tarefas
+        ],
+        'lotes': [
+            {
+                'codigo': l.codigo_lote,
+                'status': l.status_label,
+                'quantidade': float(l.quantidade_esperada or 0),
+                'preco_custo': float(l.preco_custo or 0) if l.preco_custo else None,
+                'criado_em': l.created_at.strftime('%d/%m/%Y') if l.created_at else '-',
+                'confirmado_em': l.confirmado_em.strftime('%d/%m/%Y') if l.confirmado_em else '-',
+                'criado_por': l.criado_por.username if l.criado_por else '-',
+            }
+            for l in lotes
+        ],
     })

@@ -223,6 +223,92 @@ def deletar_sku(id):
     
     return redirect(url_for('sku.gerenciar_sku'))
 
+@sku.route('/detalhes/<int:id>')
+def detalhes_sku(id):
+    from app.models import TarefaBalanco, LoteRecebimento
+    sku_obj = db.session.get(Sku, id)
+    if not sku_obj:
+        return jsonify({'error': 'SKU não encontrado'}), 404
+
+    produtos_estoque = Produto.query.filter_by(sku_id=id).order_by(Produto.created_at.desc()).all()
+    patrimonios_vinculados = Patrimonio.query.filter_by(sku_id=id).order_by(Patrimonio.created_at.desc()).limit(10).all()
+    tarefas = (
+        TarefaBalanco.query.filter_by(sku_id=id)
+        .order_by(TarefaBalanco.created_at.desc())
+        .limit(10).all()
+    )
+    lotes = (
+        LoteRecebimento.query.filter_by(sku_id=id)
+        .order_by(LoteRecebimento.created_at.desc())
+        .limit(10).all()
+    )
+
+    total_estoque = sum(float(p.quantidade or 0) for p in produtos_estoque)
+    valor_estoque = sum(float(p.quantidade or 0) * float(p.preco or 0) for p in produtos_estoque)
+
+    return jsonify({
+        'sku': {
+            'id': sku_obj.id,
+            'codigo': sku_obj.codigo,
+            'nome': sku_obj.nome,
+            'familia': sku_obj.familia.nome if sku_obj.familia else '-',
+            'tipo': sku_obj.tipo.nome if sku_obj.tipo else '-',
+            'marca': sku_obj.marca.nome if sku_obj.marca else '-',
+            'especificacao': sku_obj.especificacao.nome if sku_obj.especificacao else '-',
+            'peso': sku_obj.peso,
+            'valor_peso': sku_obj.valorPeso,
+            'criado_em': sku_obj.created_at.strftime('%d/%m/%Y %H:%M') if sku_obj.created_at else '-',
+            'total_estoque': total_estoque,
+            'valor_estoque': round(valor_estoque, 2),
+            'total_patrimonios': len(patrimonios_vinculados),
+        },
+        'estoque': [
+            {
+                'id': p.id,
+                'quantidade': float(p.quantidade or 0),
+                'preco': float(p.preco or 0),
+                'corredor': p.corredor or '-',
+                'prateleira': p.prateleira or '-',
+                'data_validade': p.data_validade.strftime('%d/%m/%Y') if p.data_validade else '-',
+                'criado_em': p.created_at.strftime('%d/%m/%Y') if p.created_at else '-',
+            }
+            for p in produtos_estoque
+        ],
+        'patrimonios': [
+            {
+                'codigo': pat.codigo_patrimonio,
+                'numero_serie': pat.numero_serie or '-',
+                'status': pat.status or '-',
+                'responsavel': pat.usuario_responsavel.username if pat.usuario_responsavel else '-',
+                'valor_compra': float(pat.valor_compra) if pat.valor_compra else None,
+            }
+            for pat in patrimonios_vinculados
+        ],
+        'tarefas': [
+            {
+                'titulo': t.titulo,
+                'tipo': t.tipo_operacao_label,
+                'status': t.status_label,
+                'responsavel': t.responsavel.username if t.responsavel else '-',
+                'criado_em': t.created_at.strftime('%d/%m/%Y') if t.created_at else '-',
+                'concluido_em': t.concluido_em.strftime('%d/%m/%Y') if t.concluido_em else '-',
+            }
+            for t in tarefas
+        ],
+        'lotes': [
+            {
+                'codigo': l.codigo_lote,
+                'status': l.status_label,
+                'quantidade': float(l.quantidade_esperada or 0),
+                'preco_custo': float(l.preco_custo) if l.preco_custo else None,
+                'criado_em': l.created_at.strftime('%d/%m/%Y') if l.created_at else '-',
+                'confirmado_em': l.confirmado_em.strftime('%d/%m/%Y') if l.confirmado_em else '-',
+            }
+            for l in lotes
+        ],
+    })
+
+
 @sku.route('/get/<int:id>')
 def get_sku(id):
     sku_obj = Sku.query.get(id)

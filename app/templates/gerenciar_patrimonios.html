@@ -277,6 +277,7 @@
                         </td>
                         <td>{{ 'R$ %.2f'|format(patrimonio.valor_compra) if patrimonio.valor_compra is not none else '-' }}</td>
                         <td>
+                            <button class="btn-icon" title="Ver detalhes" data-id="{{ patrimonio.id }}" onclick="abrirDetalhesPatrimonio(this)"><i class="fas fa-eye"></i></button>
                             <button class="btn-icon" title="Editar" data-id="{{ patrimonio.id }}" onclick="abrirEditarPatrimonio(this)"><i class="fas fa-edit"></i></button>
                             <form action="{{ url_for('patrimonios.deletar_patrimonio', id=patrimonio.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este patrimônio?');">
                                 <button type="submit" class="btn-icon text-danger" title="{{ 'Desvincule o responsável antes de excluir' if patrimonio.user_id else 'Excluir' }}" {% if patrimonio.user_id %}disabled{% endif %}><i class="fas fa-trash"></i></button>
@@ -292,6 +293,19 @@
             </table>
         </section>
     </main>
+
+    <!-- Modal Detalhes Patrimônio -->
+    <div class="modal-overlay" id="modal-detalhes-patrimonio">
+        <div class="modal-content" style="max-width:760px; max-height:90vh; overflow-y:auto;">
+            <div class="modal-header">
+                <h2 id="pat-det-titulo">Detalhes do Patrimônio</h2>
+                <button class="btn-close" onclick="fecharModal(document.getElementById('modal-detalhes-patrimonio'))"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="pat-det-corpo">
+                <p style="color:var(--text-muted);text-align:center;padding:20px;">Carregando...</p>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="modal-patrimonio">
         <div class="modal-content">
@@ -467,6 +481,73 @@
     {% include '_footer.html' %}
     <script src="{{ url_for('static', filename='js/javascript.js') }}"></script>
     <script>
+        function abrirDetalhesPatrimonio(btn) {
+            const id = btn.getAttribute('data-id');
+            const modal = document.getElementById('modal-detalhes-patrimonio');
+            const corpo = document.getElementById('pat-det-corpo');
+            corpo.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Carregando...</p>';
+            modal.classList.add('active');
+
+            fetch(`/patrimonios/detalhes/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    const p = data.patrimonio;
+                    const fmt = v => v != null ? 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '-';
+                    const statusCor = {
+                        'Disponível': '#166534', 'Em Uso': '#1d4ed8',
+                        'Em Manutenção': '#b45309', 'Furtado': '#b91c1c', 'Descartado': '#475569'
+                    }[p.status] || '#6c757d';
+
+                    let html = `
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Código Patrimônio</small><p style="margin-top:4px;font-weight:700;font-size:1.1rem;">${p.codigo}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Status</small><p style="margin-top:4px;font-weight:700;color:${statusCor};">${p.status}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Número de Série</small><p style="margin-top:4px;">${p.numero_serie}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">SKU</small><p style="margin-top:4px;">${p.sku_codigo} · ${p.sku_nome}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Família</small><p style="margin-top:4px;">${p.familia}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Marca</small><p style="margin-top:4px;">${p.marca}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Responsável</small><p style="margin-top:4px;font-weight:600;">${p.responsavel}</p><small style="color:var(--text-muted);">${p.responsavel_papel}</small></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">E-mail</small><p style="margin-top:4px;">${p.responsavel_email}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Valor de Compra</small><p style="margin-top:4px;font-weight:700;">${fmt(p.valor_compra)}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Data de Compra</small><p style="margin-top:4px;">${p.data_compra}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Fim da Garantia</small><p style="margin-top:4px;">${p.fim_garantia}</p></div>
+                        <div><small style="color:var(--text-muted);font-weight:600;text-transform:uppercase;font-size:0.75rem;">Cadastrado em</small><p style="margin-top:4px;">${p.criado_em}</p></div>
+                    </div>
+                    ${p.observacoes && p.observacoes !== '-' ? `<div style="background:#f8f9fa;border-radius:6px;padding:12px;margin-bottom:16px;font-size:0.88rem;"><strong>Observações:</strong><br>${p.observacoes}</div>` : ''}`;
+
+                    if (data.historico.length) {
+                        html += `<h4 style="font-size:0.9rem;color:var(--text-muted);margin:16px 0 8px;border-top:1px solid var(--border-color);padding-top:14px;">Histórico de Alterações</h4>
+                        <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                            <thead><tr style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;">
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Data</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Usuário</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Ação</th>
+                                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-color);">Detalhes</th>
+                            </tr></thead><tbody>`;
+                        data.historico.forEach(h => {
+                            html += `<tr>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);white-space:nowrap;">${h.data}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);">${h.usuario} <small style="color:var(--text-muted);">(${h.papel})</small></td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);font-weight:600;">${h.acao}</td>
+                                <td style="padding:7px 8px;border-bottom:1px solid var(--border-color);color:var(--text-muted);font-size:0.8rem;">${h.detalhes}</td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    } else {
+                        html += `<p style="color:var(--text-muted);font-size:0.85rem;margin-top:16px;border-top:1px solid var(--border-color);padding-top:14px;">Sem histórico de alterações registrado.</p>`;
+                    }
+
+                    document.getElementById('pat-det-titulo').textContent = `${p.codigo} · ${p.sku_nome}`;
+                    corpo.innerHTML = html;
+                })
+                .catch(() => { corpo.innerHTML = '<p style="color:var(--danger-color);text-align:center;padding:20px;">Erro ao carregar detalhes.</p>'; });
+        }
+
+        window.addEventListener('click', e => {
+            if (e.target === document.getElementById('modal-detalhes-patrimonio'))
+                fecharModal(document.getElementById('modal-detalhes-patrimonio'));
+        });
+
         const btnNovoPatrimonio = document.getElementById('btn-novo-patrimonio');
         const modalPatrimonio = document.getElementById('modal-patrimonio');
         const btnClosePatrimonio = document.getElementById('btn-close-patrimonio');
