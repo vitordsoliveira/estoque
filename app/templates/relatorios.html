@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='images/simbolo.png') }}" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        .relatorios-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+            min-height: 80vh;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kpi-info h3 {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .kpi-info p {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius);
+            background: #e8f0fe;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .kpi-icon.success-bg { background: #d4edda; color: var(--success-color); }
+        .kpi-icon.danger-bg  { background: #f8d7da; color: var(--danger-color); }
+        .kpi-icon.warn-bg    { background: #fff3cd; color: #856404; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .charts-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card h3 i {
+            color: var(--primary-color);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 220px;
+        }
+
+        .chart-wrapper-sm {
+            position: relative;
+            height: 180px;
+        }
+
+        .top-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .top-table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .top-table td {
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .top-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tarefas-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .tarefa-badge {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            border-radius: var(--radius);
+            font-weight: 600;
+        }
+
+        .tarefa-badge .num {
+            font-size: 1.6rem;
+            display: block;
+            line-height: 1;
+        }
+
+        .tarefa-badge .label {
+            font-size: 0.72rem;
+            margin-top: 4px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-secondary { background: #e9ecef; color: #495057; }
+
+        .tempo-destaque {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            margin: 18px 0 6px;
+        }
+
+        .tempo-label {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid, .charts-grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% include '_header.html' %}
+
+    <main class="relatorios-container">
+        <div class="page-header">
+            <div>
+                <h2>Relatórios</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Visão consolidada de gastos, estoque, patrimônios e operações.</p>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Total Investido em Compras</h3>
+                    <p>R$ {{ '%.2f'|format(total_gasto) }}</p>
+                </div>
+                <div class="kpi-icon danger-bg"><i class="fas fa-shopping-cart"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Valor em Estoque</h3>
+                    <p>R$ {{ '%.2f'|format(valor_estoque) }}</p>
+                </div>
+                <div class="kpi-icon success-bg"><i class="fas fa-boxes"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Valor em Patrimônios</h3>
+                    <p>R$ {{ '%.2f'|format(valor_patrimonios) }}</p>
+                </div>
+                <div class="kpi-icon warn-bg"><i class="fas fa-laptop"></i></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>Tarefas Concluídas</h3>
+                    <p>{{ tarefas_concluidas }}</p>
+                </div>
+                <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+            </div>
+        </div>
+
+        <!-- Gráficos principais -->
+        <div class="charts-grid">
+            <div class="card">
+                <h3><i class="fas fa-chart-bar"></i> Entradas por Mês (Lotes Confirmados)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="chart-entradas"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-clipboard-list"></i> Tarefas de Balanço</h3>
+                <div class="tarefas-row">
+                    <div class="tarefa-badge badge-success">
+                        <span class="num">{{ tarefas_concluidas }}</span>
+                        <span class="label">Concluídas</span>
+                    </div>
+                    <div class="tarefa-badge badge-warning">
+                        <span class="num">{{ tarefas_pendentes }}</span>
+                        <span class="label">Pendentes</span>
+                    </div>
+                    <div class="tarefa-badge badge-secondary">
+                        <span class="num">{{ tarefas_canceladas }}</span>
+                        <span class="label">Canceladas</span>
+                    </div>
+                </div>
+                <div class="chart-wrapper-sm" style="margin-top: 16px;">
+                    <canvas id="chart-tarefas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linha inferior -->
+        <div class="charts-grid-3">
+            <div class="card" style="grid-column: span 2;">
+                <h3><i class="fas fa-trophy"></i> Top 5 SKUs por Valor em Estoque</h3>
+                {% if top_skus %}
+                <table class="top-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Código</th>
+                            <th>Produto</th>
+                            <th>Qtd.</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sku in top_skus %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ sku.codigo }}</strong></td>
+                            <td>{{ sku.nome }}</td>
+                            <td>{{ ('%.3f'|format(sku.quantidade)).rstrip('0').rstrip('.') }}</td>
+                            <td>R$ {{ '%.2f'|format(sku.valor) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhum produto em estoque.</p>
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-clock"></i> Tempo Médio por Tarefa</h3>
+                {% if tempo_medio_horas > 0 %}
+                <div class="tempo-destaque">{{ tempo_medio_horas }}h</div>
+                <div class="tempo-label">tempo médio de conclusão</div>
+                {% else %}
+                <p style="color: var(--text-muted); text-align: center; padding: 30px 0;">Sem tarefas concluídas ainda.</p>
+                {% endif %}
+
+                <h3 style="margin-top: 24px;"><i class="fas fa-tag"></i> Patrimônios por Status</h3>
+                {% if pat_status_qtd | sum > 0 %}
+                <div class="chart-wrapper-sm">
+                    <canvas id="chart-patrimonios"></canvas>
+                </div>
+                {% else %}
+                <p style="color: var(--text-muted); text-align: center; padding: 20px 0;">Nenhum patrimônio cadastrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    {% include '_footer.html' %}
+
+    <script>
+        const PRIMARY = '#0056b3';
+        const SUCCESS = '#28a745';
+        const DANGER  = '#dc3545';
+        const WARN    = '#ffc107';
+        const MUTED   = '#6c757d';
+
+        const entradasLabels = {{ meses_labels | safe }};
+        const entradasQtd    = {{ meses_qtd | safe }};
+        const entradasValor  = {{ meses_valor | safe }};
+
+        const tarefasLabels  = ['Concluídas', 'Pendentes', 'Canceladas'];
+        const tarefasData    = [{{ tarefas_concluidas }}, {{ tarefas_pendentes }}, {{ tarefas_canceladas }}];
+
+        const patLabels = {{ pat_status_labels | safe }};
+        const patData   = {{ pat_status_qtd | safe }};
+
+        // Chart: Entradas por mês
+        const ctxEntradas = document.getElementById('chart-entradas');
+        if (ctxEntradas) {
+            new Chart(ctxEntradas, {
+                type: 'bar',
+                data: {
+                    labels: entradasLabels.length ? entradasLabels : ['Sem dados'],
+                    datasets: [
+                        {
+                            label: 'Lotes recebidos',
+                            data: entradasQtd,
+                            backgroundColor: PRIMARY + 'bb',
+                            borderColor: PRIMARY,
+                            borderWidth: 1,
+                            yAxisID: 'yQtd',
+                        },
+                        {
+                            label: 'Valor gasto (R$)',
+                            data: entradasValor,
+                            type: 'line',
+                            borderColor: DANGER,
+                            backgroundColor: DANGER + '22',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            yAxisID: 'yValor',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        yQtd: {
+                            type: 'linear',
+                            position: 'left',
+                            ticks: { stepSize: 1 },
+                            title: { display: true, text: 'Lotes' }
+                        },
+                        yValor: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) },
+                            title: { display: true, text: 'Valor (R$)' }
+                        }
+                    },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        // Chart: Tarefas
+        const ctxTarefas = document.getElementById('chart-tarefas');
+        if (ctxTarefas) {
+            new Chart(ctxTarefas, {
+                type: 'doughnut',
+                data: {
+                    labels: tarefasLabels,
+                    datasets: [{
+                        data: tarefasData,
+                        backgroundColor: [SUCCESS + 'cc', WARN + 'cc', MUTED + 'cc'],
+                        borderColor: [SUCCESS, WARN, MUTED],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+        }
+
+        // Chart: Patrimônios por status
+        const ctxPat = document.getElementById('chart-patrimonios');
+        if (ctxPat && patData.length) {
+            const patColors = [SUCCESS + 'cc', PRIMARY + 'cc', WARN + 'cc', DANGER + 'cc', MUTED + 'cc'];
+            new Chart(ctxPat, {
+                type: 'doughnut',
+                data: {
+                    labels: patLabels,
+                    datasets: [{
+                        data: patData,
+                        backgroundColor: patColors.slice(0, patLabels.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

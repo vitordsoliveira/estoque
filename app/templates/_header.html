@@ -28,6 +28,8 @@
                     class="{{ 'active' if current_blueprint == 'familia' else '' }}">Familias</a></li>
             <li><a href="{{ url_for('tipo.gerenciar_tipo') }}"
                     class="{{ 'active' if current_blueprint == 'tipo' else '' }}">Tipos</a></li>
+            <li><a href="{{ url_for('relatorios.index') }}"
+                    class="{{ 'active' if current_blueprint == 'relatorios' else '' }}">Relatórios</a></li>
             {% if current_user and current_user.is_admin %}
                 <li><a href="{{ url_for('hierarquia.gerenciar_hierarquia') }}"
                     class="{{ 'active' if current_blueprint == 'hierarquia' else '' }}">Hierarquia</a></li>
@@ -80,12 +82,14 @@
 </section>
 
 <script>
-    window.setTimeout(() => {
-        document.querySelectorAll('[data-flash]').forEach((flashElement) => {
+    document.querySelectorAll('[data-flash]').forEach((flashElement) => {
+        const isSuccess = flashElement.classList.contains('flash-success');
+        const delay = isSuccess ? 3000 : 6000;
+        window.setTimeout(() => {
             flashElement.classList.add('flash-hide');
             window.setTimeout(() => flashElement.remove(), 250);
-        });
-    }, 2000);
+        }, delay);
+    });
 </script>
 {% endif %}
 {% endwith %}

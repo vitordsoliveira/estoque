@@ -196,7 +196,7 @@ def cadastrar_patrimonio():
 @patrimonios.route('/editar/<int:id>', methods=['POST'])
 @admin_required
 def editar_patrimonio(id):
-    patrimonio = Patrimonio.query.get(id)
+    patrimonio = db.session.get(Patrimonio, id)
     if not patrimonio:
         flash('Patrimônio não encontrado.', 'danger')
         return redirecionar_para_origem()
@@ -257,7 +257,7 @@ def editar_patrimonio(id):
 @patrimonios.route('/deletar/<int:id>', methods=['POST'])
 @admin_required
 def deletar_patrimonio(id):
-    patrimonio = Patrimonio.query.get(id)
+    patrimonio = db.session.get(Patrimonio, id)
     if not patrimonio:
         flash('Patrimônio não encontrado.', 'danger')
         return redirecionar_para_origem()
@@ -297,7 +297,7 @@ def preco_sku(sku_id):
 @patrimonios.route('/get/<int:id>')
 @admin_required
 def get_patrimonio(id):
-    patrimonio = Patrimonio.query.get(id)
+    patrimonio = db.session.get(Patrimonio, id)
     if not patrimonio:
         return jsonify({'error': 'Patrimônio não encontrado'}), 404
 
